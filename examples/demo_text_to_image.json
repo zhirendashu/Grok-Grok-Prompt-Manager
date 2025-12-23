@@ -1,0 +1,72 @@
+[
+  {
+    "id": 1701234567890,
+    "text": "A futuristic cyberpunk city at night, neon lights reflecting on wet streets, flying cars in the distance, cinematic composition",
+    "desc": "赛博朋克未来城市夜景",
+    "category": "Cyberpunk",
+    "pinned": false
+  },
+  {
+    "id": 1701234567891,
+    "text": "Portrait of a young woman with flowing hair, soft natural lighting, bokeh background, professional photography style",
+    "desc": "柔光人像摄影",
+    "category": "Portrait",
+    "pinned": true
+  },
+  {
+    "id": 1701234567892,
+    "text": "A majestic dragon flying over snow-capped mountains, epic fantasy scene, dramatic clouds, golden hour lighting",
+    "desc": "史诗级奇幻巨龙",
+    "category": "Fantasy",
+    "pinned": false
+  },
+  {
+    "id": 1701234567893,
+    "text": "Minimalist modern interior design, Scandinavian style, natural wood furniture, large windows with city view",
+    "desc": "北欧简约室内设计",
+    "category": "Interior Design",
+    "pinned": false
+  },
+  {
+    "id": 1701234567894,
+    "text": "Cute cartoon character, 3D render, Pixar style, colorful and cheerful, white background",
+    "desc": "皮克斯风格卡通角色",
+    "category": "Cartoon",
+    "pinned": false
+  },
+  {
+    "id": 1701234567895,
+    "text": "Vintage film photography aesthetic, grainy texture, warm tones, nostalgic mood, street photography",
+    "desc": "复古胶片街拍",
+    "category": "Vintage",
+    "pinned": false
+  },
+  {
+    "id": 1701234567896,
+    "text": "Abstract geometric patterns, vibrant colors, modern art style, high contrast, symmetrical composition",
+    "desc": "抽象几何艺术",
+    "category": "Abstract",
+    "pinned": false
+  },
+  {
+    "id": 1701234567897,
+    "text": "Anime style illustration, detailed eyes, dynamic pose, colorful hair, studio lighting",
+    "desc": "动漫风格插画",
+    "category": "Anime",
+    "pinned": true
+  },
+  {
+    "id": 1701234567898,
+    "text": "Photorealistic food photography, gourmet dish, professional plating, shallow depth of field, appetizing presentation",
+    "desc": "美食摄影",
+    "category": "Food",
+    "pinned": false
+  },
+  {
+    "id": 1701234567899,
+    "text": "Surreal dreamscape, floating islands, impossible architecture, Salvador Dali inspired, vibrant colors",
+    "desc": "超现实梦境",
+    "category": "Surreal",
+    "pinned": false
+  }
+]

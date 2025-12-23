@@ -1,8 +1,14 @@
-# User Data
-*.json
+# User Data - Exclude personal libraries
 library/
 raw_data/
 tests/
+
+# Allow examples directory
+!examples/
+!examples/*.json
+
+# Tools with personal data
+tools/
 
 # System
 .DS_Store

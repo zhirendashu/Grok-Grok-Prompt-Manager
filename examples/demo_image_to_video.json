@@ -1,0 +1,37 @@
+[
+    {
+        "id": 1701234567900,
+        "text": "Camera slowly pans around the subject, revealing details from all angles, smooth cinematic movement",
+        "desc": "环绕镜头运动",
+        "category": "Camera Movement",
+        "pinned": false
+    },
+    {
+        "id": 1701234567901,
+        "text": "Gentle zoom in towards the focal point, maintaining focus, creating dramatic emphasis",
+        "desc": "缓慢推进镜头",
+        "category": "Camera Movement",
+        "pinned": true
+    },
+    {
+        "id": 1701234567902,
+        "text": "Soft wind blowing through hair and clothing, natural movement, realistic physics",
+        "desc": "自然风吹效果",
+        "category": "Natural Effects",
+        "pinned": false
+    },
+    {
+        "id": 1701234567903,
+        "text": "Subtle facial expressions changing, eyes blinking naturally, lifelike animation",
+        "desc": "面部微表情动画",
+        "category": "Character Animation",
+        "pinned": false
+    },
+    {
+        "id": 1701234567904,
+        "text": "Dynamic lighting changes, shadows shifting, time-lapse effect, atmospheric mood",
+        "desc": "动态光影变化",
+        "category": "Lighting",
+        "pinned": false
+    }
+]

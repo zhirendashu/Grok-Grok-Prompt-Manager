@@ -31,6 +31,16 @@
 - **分类管理**: 导入时文件名自动成为分类标签，方便筛选查看。
 - **草稿与历史**: 点击底部工具栏图标打开面板，查看历史记录或在草稿区拼接复杂的长提示词。
 
+## 📦 导入示例提示词库
+
+项目包含了演示用的提示词库文件，帮助您快速上手：
+
+1. 在左侧或右侧面板中，点击 **入** (导入) 按钮
+2. 选择 `examples/demo_text_to_image.json` (文生图示例) 或 `examples/demo_image_to_video.json` (图生视频示例)
+3. 导入后即可在列表中看到示例提示词，点击即可使用
+
+您也可以参考这些示例文件的格式，创建自己的提示词库。
+
 ---
 
 <br>
@@ -67,6 +77,16 @@ A powerful userscript designed to enhance your experience with Grok AI's image a
   - **Replace Mode**: Replaces the entire input field.
 - **Manage Categories**: Use the tag system to categorize your prompts for easy access.
 - **Draft & History**: Open the bottom panel to view your usage history or construct complex prompts in the scratchpad.
+
+## 📦 Import Demo Prompt Library
+
+The project includes demo prompt library files to help you get started quickly:
+
+1. In the left or right panel, click the **入** (Import) button
+2. Select `examples/demo_text_to_image.json` (Text-to-Image examples) or `examples/demo_image_to_video.json` (Image-to-Video examples)
+3. After importing, you'll see the example prompts in the list - click to use them
+
+You can also refer to these example files to create your own custom prompt libraries.
 
 ## ⚖️ License
 
