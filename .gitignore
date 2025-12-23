@@ -1,0 +1,12 @@
+# User Data
+*.json
+library/
+raw_data/
+tests/
+
+# System
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
