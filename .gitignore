@@ -1,0 +1,94 @@
+# ========================================
+# 隐私和敏感内容 - 绝不上传
+# ========================================
+
+# 备份文件夹（包含旧版本脚本和个人数据）
+backup/
+backup*/
+
+# 个人提示词库（包含隐私内容）
+library/
+raw_data/
+examples/*.json
+grok_*.json
+*.user.js.backup
+植人大树*.user.js
+*备份*.user.js
+
+# 视频相关个人数据
+视频相关/
+视频通用.json
+grok_image_to_video*.json
+
+# 自动重试相关
+自动重试/
+
+# 临时文件夹
+temp*/
+Grok prompt/
+
+# 个人配置和数据
+*.local.json
+*.private.json
+*_personal.json
+
+# ========================================
+# 开发和测试文件
+# ========================================
+
+# 测试文件
+tests/
+
+# 文档草稿
+*_DRAFT.md
+IMPLEMENTATION_PLAN*.md
+GIT_SAFETY_REPORT.md
+V3.3_UPDATE_LOG.md
+FIX_SUMMARY.md
+IMPORT_EXPORT_AUDIT.md
+check-git-safety.ps1
+
+# ========================================
+# 系统和IDE文件
+# ========================================
+
+# MacOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ========================================
+# Git
+# ========================================
+.git/
+
+# ========================================
+# 保留的公开文件（明确列出）
+# ========================================
+# 以下文件应该被包含（注释仅供参考）：
+# - README.md
+# - RELEASE_NOTES_v4.3.0.md
+# - QUICK_START.md
+# - 完整功能介绍.md
+# - src/grok_prompt_manager.user.js
+# - LICENSE (如果有)
+# - docs/ (文档目录)
