@@ -1717,7 +1717,15 @@
             let startX, startY, initialLeft, initialTop;
 
             header.onmousedown = (e) => {
-                if (e.target.tagName === 'BUTTON') return;
+                // 排除交互元素：按钮、输入框、选择框、链接
+                const tagName = e.target.tagName.toUpperCase();
+                if (['BUTTON', 'INPUT', 'SELECT', 'TEXTAREA', 'A'].includes(tagName)) return;
+                // 排除有 class 的可点击元素
+                if (e.target.classList.contains('lib-trigger-area') ||
+                    e.target.closest('.lib-trigger-area') ||
+                    e.target.closest('.lib-actions-fixed') ||
+                    e.target.closest('.gpm-btn')) return;
+
                 isDragging = true;
                 startX = e.clientX;
                 startY = e.clientY;
@@ -3168,19 +3176,19 @@
 
                     item.dataset.libId = lib.id;
 
-                    // Hover Effect
-                    item.onmouseenter = () => {
-                        if (!isActive && !isDragging) {
-                            item.style.background = 'rgba(255,255,255,0.06)';
-                            item.style.borderColor = 'rgba(255,255,255,0.1)';
-                        }
-                    };
-                    item.onmouseleave = () => {
-                        if (!isActive) {
-                            item.style.background = 'transparent';
-                            item.style.borderColor = 'transparent';
-                        }
-                    };
+                    // Hover Effect - 已禁用，只保留点击高亮
+                    // item.onmouseenter = () => {
+                    //     if (!isActive && !isDragging) {
+                    //         item.style.background = 'rgba(255,255,255,0.06)';
+                    //         item.style.borderColor = 'rgba(255,255,255,0.1)';
+                    //     }
+                    // };
+                    // item.onmouseleave = () => {
+                    //     if (!isActive) {
+                    //         item.style.background = 'transparent';
+                    //         item.style.borderColor = 'transparent';
+                    //     }
+                    // };
 
                     // Content
                     item.innerHTML = `
