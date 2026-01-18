@@ -1,9 +1,9 @@
 // ==UserScript==
-// @name         植人大树 Prompt Manager 3.0
+// @name         植人大树 Grok Prompt Manager (v4.9.2 瘦身重构)
 // @namespace    http://tampermonkey.net/
 // @version      4.9.2
-// @description  The Next-Gen Prompt Manager for Grok. Glassmorphism UI, Smart Templates, and Cloud Sync.
-// @author       AntiGravity
+// @description  Grok 提示词管理神器 - 极致瘦身版，修复交互逻辑，优化性能。
+// @author       植人大树avity
 // @match        https://grok.com/*
 // @match        https://x.com/*
 // @match        https://twitter.com/*
