@@ -1,40 +1,4 @@
-# System Files
-.DS_Store
-Thumbs.db
-Desktop.ini
-
-# Logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Node Modules
-node_modules/
-
-# IDE
-.vscode/
+.backup_temp/
 .idea/
-
-# Private / Development Folders (User Request)
-02_测试版/
-03_分支版/
-04_独立模块/
-05_历史备份/
-07_数据素材/
-backup/
-temp_grok_loop/
-examples/
-library/
-raw_data/
-tests/
-tools/
-docs/
-Grok prompt/
-grok-imagine-loop/
-grok-imagine-loop-latest/
-自动重试/
-自动高清/
-视频相关/
-
-# User Brain / Artifacts
-.gemini/
+.vscode/
+*.log
