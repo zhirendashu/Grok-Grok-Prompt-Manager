@@ -3517,7 +3517,52 @@
             // ✨ FEATURE #4: Initialize batch selection state
             if (!this.selectedPrompts) this.selectedPrompts = new Set();
 
-            filtered.forEach(p => {
+            // ✨ 性能优化：智能分页渲染
+            const PAGINATION_THRESHOLD = 50; // 超过 50 条启用分页
+            const PAGE_SIZE = 50; // 每页 50 条
+            const enablePagination = filtered.length > PAGINATION_THRESHOLD;
+            
+            if (!this._currentPage) this._currentPage = 1;
+            if (!this._lastFilteredData || JSON.stringify(this._lastFilteredData) !== JSON.stringify(filtered)) {
+                // 数据变化时重置分页
+                this._currentPage = 1;
+                this._lastFilteredData = filtered;
+            }
+            
+            const totalPages = enablePagination ? Math.ceil(filtered.length / PAGE_SIZE) : 1;
+            const startIndex = enablePagination ? (this._currentPage - 1) * PAGE_SIZE : 0;
+            const endIndex = enablePagination ? Math.min(startIndex + PAGE_SIZE, filtered.length) : filtered.length;
+            const itemsToRender = filtered.slice(startIndex, endIndex);
+            
+            // 显示分页信息
+            if (enablePagination) {
+                const paginationInfo = document.createElement('div');
+                paginationInfo.style.cssText = `
+                    padding: 8px;
+                    text-align: center;
+                    color: var(--gpm-text-dim);
+                    font-size: 12px;
+                    background: rgba(255,255,255,0.03);
+                    border-radius: 4px;
+                    margin-bottom: 8px;
+                `;
+                paginationInfo.innerHTML = `
+                    显示 ${startIndex + 1}-${endIndex} / 共 ${filtered.length} 条
+                    ${this._currentPage < totalPages ? '<span style="color: #1d9bf0; cursor: pointer;" class="load-more-btn">▼ 加载更多</span>' : ''}
+                `;
+                container.appendChild(paginationInfo);
+                
+                // 加载更多按钮
+                const loadMoreBtn = paginationInfo.querySelector('.load-more-btn');
+                if (loadMoreBtn) {
+                    loadMoreBtn.onclick = () => {
+                        this._currentPage++;
+                        this.renderList();
+                    };
+                }
+            }
+
+            itemsToRender.forEach(p => {
                 const el = document.createElement('div');
                 el.style.cssText = `
                     padding: 8px; background: ${p.pinned ? 'rgba(29, 155, 240, 0.15)' : 'rgba(255,255,255,0.05)'};
