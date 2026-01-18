@@ -2921,10 +2921,24 @@
                 // Create Panel
                 libSelectorPanel = document.createElement('div');
                 libSelectorPanel.className = 'gpm-lib-selector-panel';
+
+                // 尝试恢复保存的位置
+                const savedPos = localStorage.getItem('gpm_libPanelPos');
+                let positionStyle = '';
+                if (savedPos) {
+                    try {
+                        const pos = JSON.parse(savedPos);
+                        positionStyle = `left: ${pos.left}px; top: ${pos.top}px;`;
+                    } catch (e) {
+                        positionStyle = `top: 120px; ${isLeft ? 'left: 400px;' : 'right: 400px;'}`;
+                    }
+                } else {
+                    positionStyle = `top: 120px; ${isLeft ? 'left: 400px;' : 'right: 400px;'}`;
+                }
+
                 libSelectorPanel.style.cssText = `
                     position: fixed;
-                    top: 120px;
-                    ${isLeft ? 'left: 400px;' : 'right: 400px;'}
+                    ${positionStyle}
                     width: 320px;
                     max-height: 600px;
                     background: rgba(20, 20, 30, 0.95);
@@ -2952,6 +2966,8 @@
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
+                    cursor: move;
+                    user-select: none;
                 `;
                 header.innerHTML = `
                     <span style="font-weight: bold; font-size: 14px;">切换库 (Switch Library)</span>
@@ -2961,6 +2977,42 @@
                         font-size: 18px; line-height: 1;
                     ">✕</button>
                 `;
+
+                // 添加拖动功能
+                let isDraggingPanel = false;
+                let panelOffsetX = 0;
+                let panelOffsetY = 0;
+
+                header.onmousedown = (e) => {
+                    if (e.target.closest('.close-lib-panel-btn')) return;
+                    isDraggingPanel = true;
+                    const rect = libSelectorPanel.getBoundingClientRect();
+                    panelOffsetX = e.clientX - rect.left;
+                    panelOffsetY = e.clientY - rect.top;
+                    header.style.cursor = 'grabbing';
+                };
+
+                document.onmousemove = (e) => {
+                    if (!isDraggingPanel) return;
+                    const newLeft = e.clientX - panelOffsetX;
+                    const newTop = e.clientY - panelOffsetY;
+                    libSelectorPanel.style.left = newLeft + 'px';
+                    libSelectorPanel.style.top = newTop + 'px';
+                    libSelectorPanel.style.right = 'auto';
+                };
+
+                document.onmouseup = () => {
+                    if (isDraggingPanel) {
+                        isDraggingPanel = false;
+                        header.style.cursor = 'move';
+                        // 保存位置
+                        const rect = libSelectorPanel.getBoundingClientRect();
+                        localStorage.setItem('gpm_libPanelPos', JSON.stringify({
+                            left: rect.left,
+                            top: rect.top
+                        }));
+                    }
+                };
 
                 // Search Box
                 const searchBox = document.createElement('div');
