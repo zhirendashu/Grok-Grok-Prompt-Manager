@@ -1479,13 +1479,33 @@
                         </div>
 
                         <!-- Toolbar Row 1: Library Selection -->
-                        <div class="lib-row" style="display: flex; gap: 6px; align-items: center;">
-                            <select class="lib-select" style="
-                                flex: 1; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1);
-                                color: white; border-radius: 4px; padding: 4px; font-size: 12px;
-                            "></select>
-                            <button class="gpm-btn add-lib-btn" title="新建库 (New Library)">${ICON_SET.AddLib}</button>
-                            <button class="gpm-btn del-lib-btn" title="删除库 (Delete Library)">${ICON_SET.DelLib}</button>
+                        <!-- Toolbar Row 1: Library Selection (Fixed Layout) -->
+                        <div class="lib-row" style="display: flex; gap: 8px; align-items: center;">
+                            
+                            <!-- Left: Library Name Trigger (Expands) -->
+                            <div class="lib-trigger-area" style="
+                                flex: 1; display: flex; align-items: center; gap: 6px;
+                                cursor: pointer; padding: 4px 8px; border-radius: 6px;
+                                background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+                                transition: all 0.2s; overflow: hidden; height: 32px;
+                            ">
+                                <span class="current-lib-name" style="
+                                    font-weight: 600; font-size: 14px; white-space: nowrap; 
+                                    overflow: hidden; text-overflow: ellipsis; color: #fff;
+                                ">Loading...</span>
+                                <span style="font-size: 10px; opacity: 0.6; margin-top: 2px;">▼</span>
+                            </div>
+
+                            <!-- Right: Fixed Action Buttons -->
+                            <div class="lib-actions-fixed" style="display: flex; gap: 4px; flex-shrink: 0;">
+                                <button class="gpm-btn add-lib-btn" title="新建库 (New Library)" style="
+                                    width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center;
+                                ">${ICON_SET.AddLib}</button>
+                                <button class="gpm-btn del-lib-btn" title="删除库 (Delete Library)" style="
+                                    width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center;
+                                ">${ICON_SET.DelLib}</button>
+                            </div>
+
                         </div>
 
                         <!-- Toolbar Row 2: Actions -->
@@ -1660,38 +1680,58 @@
             const HIDE_OFFSET = this.width - 10; // How much to hide (leave 10px visible)
 
             // ✨ FIX: Robust Interaction Tracking (Focus/Blur)
-            this.isInteracting = false;
-            const trackInteraction = (el) => {
-                if (!el) return;
-                el.addEventListener('focus', () => {
-                    this.isInteracting = true;
-                    if (hideTimer) clearTimeout(hideTimer); // Stop timer immediately on focus
-                });
-                el.addEventListener('blur', () => {
-                    this.isInteracting = false;
-                });
-                // Capture clicks too just in case
-                el.addEventListener('mousedown', () => {
-                    if (hideTimer) clearTimeout(hideTimer);
-                });
-            };
-            // Apply to all static inputs (Search, Library Select, etc.)
-            this.shadow.querySelectorAll('input, select, textarea').forEach(trackInteraction);
+    this.isInteracting = false;
+    this.refreshInteractionListeners = () => {
+         this.shadow.querySelectorAll('input, select, textarea').forEach(el => {
+             // Avoid duplicate bindings
+             if(el.dataset.interactionBound) return;
 
-            const checkEdgeProximity = () => {
-                if (!this.autoHideEnabled) return;
+             el.addEventListener('focus', () => {
+                 this.isInteracting = true;
+                 if (hideTimer) clearTimeout(hideTimer);
+             });
+             el.addEventListener('blur', () => {
+                 this.isInteracting = false;
+                 // Delay check to allow focus to move to another element inside panel
+                 setTimeout(() => checkEdgeProximity(), 200);
+             });
+             // Capture mousedown to prevent hiding while clicking
+             el.addEventListener('mousedown', (e) => {
+                 this.isInteracting = true;
+                 if (hideTimer) clearTimeout(hideTimer);
+                 e.stopPropagation(); // Stop bubble
+             });
+             
+             // ✨ Special handling for Custom Library Selector (Input Search)
+             if (el.classList.contains('lib-search-input-menu')) {
+                 // Prevent auto-hide when typing in search
+                 el.addEventListener('input', () => {
+                     this.isInteracting = true;
+                     if (hideTimer) clearTimeout(hideTimer);
+                 });
+             }
 
-                // Priority Check: Interaction Flag
-                // If user is focused on an input/select, NEVER hide
-                if (this.isInteracting) {
-                    if (hideTimer) clearTimeout(hideTimer);
-                    hideTimer = setTimeout(() => checkEdgeProximity(), 2000); // Re-check later
-                    return;
-                }
+             el.dataset.interactionBound = 'true';
+         });
+    };
 
-                // Secondary Check: Active Element (Backup for dynamic elements)
-                const activeEl = this.shadow.activeElement;
-                if (activeEl && (activeEl.tagName === 'SELECT' || activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
+    // Initial Bind
+    this.refreshInteractionListeners();
+
+    const checkEdgeProximity = () => {
+        if (!this.autoHideEnabled) return;
+
+        // Priority Check: Interaction Flag
+        // If user is focused on an input/select, NEVER hide
+        if (this.isInteracting) {
+            if (hideTimer) clearTimeout(hideTimer);
+            hideTimer = setTimeout(() => checkEdgeProximity(), 1000); // Re-check later
+            return;
+        }
+
+        // Secondary Check: Active Element (Backup for dynamic elements)
+        const activeEl = this.shadow.activeElement;
+        if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.classList.contains('lib-search-input-menu'))) {
                     if (hideTimer) clearTimeout(hideTimer);
                     hideTimer = setTimeout(() => checkEdgeProximity(), 2000);
                     return;
@@ -2743,10 +2783,267 @@
             document.addEventListener('click', this._globalClickHandler);
             this._globalClickBound = true;
 
-            // Setup Toolbar
-            const select = this.shadow.querySelector('.lib-select');
-            select.innerHTML = libraries.map(l => `<option value="${l.id}" ${l.id === libraryData.id ? 'selected' : ''}>${l.name}</option>`).join('');
-            select.onchange = (e) => onLibChange(e.target.value);
+            // ✨ FEATURE: Independent Floating Library Selector Panel
+            const isLeft = this.side === 'left';
+            const libTriggerArea = this.shadow.querySelector('.lib-trigger-area');
+            const currentLibName = this.shadow.querySelector('.current-lib-name');
+
+            // Set initial label
+            if (currentLibName) currentLibName.textContent = libraryData.name;
+
+            // Create Independent Floating Panel (Similar to Auto-Retry Panel)
+            let libSelectorPanel = this.shadow.querySelector('.gpm-lib-selector-panel');
+            
+            if (!libSelectorPanel) {
+                // Create Panel
+                libSelectorPanel = document.createElement('div');
+                libSelectorPanel.className = 'gpm-lib-selector-panel';
+                libSelectorPanel.style.cssText = `
+                    position: fixed;
+                    top: 120px;
+                    ${isLeft ? 'left: 400px;' : 'right: 400px;'}
+                    width: 300px;
+                    max-height: 500px;
+                    background: rgba(20, 20, 30, 0.95);
+                    backdrop-filter: blur(16px);
+                    -webkit-backdrop-filter: blur(16px);
+                    border: 1px solid rgba(255,255,255,0.15);
+                    border-radius: 12px;
+                    box-shadow: 0 12px 48px rgba(0,0,0,0.7);
+                    z-index: 999999;
+                    display: none;
+                    flex-direction: column;
+                    overflow: hidden;
+                    color: white;
+                    font-size: 13px;
+                    transition: opacity 0.2s ease, transform 0.2s ease;
+                    opacity: 0;
+                    transform: translateY(-10px);
+                `;
+
+                // Panel Header
+                const header = document.createElement('div');
+                header.style.cssText = `
+                    padding: 16px;
+                    border-bottom: 1px solid rgba(255,255,255,0.1);
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                `;
+                header.innerHTML = `
+                    <span style="font-weight: bold; font-size: 14px;">切换库 (Switch Library)</span>
+                    <button class="gpm-btn close-lib-panel-btn" style="
+                        width: 24px; height: 24px; padding: 0; background: transparent;
+                        border: none; color: rgba(255,255,255,0.6); cursor: pointer;
+                        font-size: 18px; line-height: 1;
+                    ">✕</button>
+                `;
+
+                // Search Box
+                const searchBox = document.createElement('div');
+                searchBox.style.cssText = 'padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.05);';
+                searchBox.innerHTML = `
+                    <input type="text" class="lib-panel-search" placeholder="搜索库 (Search)..." style="
+                        width: 100%;
+                        background: rgba(0,0,0,0.3);
+                        border: 1px solid rgba(255,255,255,0.1);
+                        padding: 8px 12px;
+                        border-radius: 6px;
+                        color: #fff;
+                        font-size: 13px;
+                        outline: none;
+                    ">
+                `;
+
+                // List Container
+                const listContainer = document.createElement('div');
+                listContainer.className = 'lib-panel-list';
+                listContainer.style.cssText = `
+                    flex: 1;
+                    overflow-y: auto;
+                    padding: 8px;
+                    max-height: 400px;
+                `;
+                listContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">Loading...</div>';
+
+                // Assemble Panel
+                libSelectorPanel.appendChild(header);
+                libSelectorPanel.appendChild(searchBox);
+                libSelectorPanel.appendChild(listContainer);
+
+                // Mount to Shadow Root
+                this.shadow.appendChild(libSelectorPanel);
+
+                // Close Button Event
+                const closeBtn = header.querySelector('.close-lib-panel-btn');
+                closeBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    hideLibPanel();
+                };
+
+                // Search Event
+                const searchInput = searchBox.querySelector('.lib-panel-search');
+                searchInput.oninput = (e) => {
+                    renderLibPanelList(e.target.value);
+                };
+            }
+
+            // Show/Hide Panel Functions
+            const showLibPanel = () => {
+                libSelectorPanel.style.display = 'flex';
+                requestAnimationFrame(() => {
+                    libSelectorPanel.style.opacity = '1';
+                    libSelectorPanel.style.transform = 'translateY(0)';
+                });
+                renderLibPanelList();
+                const searchInput = libSelectorPanel.querySelector('.lib-panel-search');
+                if (searchInput) {
+                    searchInput.value = '';
+                    searchInput.focus();
+                }
+            };
+
+            const hideLibPanel = () => {
+                libSelectorPanel.style.opacity = '0';
+                libSelectorPanel.style.transform = 'translateY(-10px)';
+                setTimeout(() => {
+                    libSelectorPanel.style.display = 'none';
+                }, 200);
+            };
+
+            // Toggle Panel on Trigger Click
+            if (libTriggerArea) {
+                libTriggerArea.onclick = (e) => {
+                    e.stopPropagation();
+                    const isVisible = libSelectorPanel.style.display === 'flex';
+                    if (isVisible) {
+                        hideLibPanel();
+                    } else {
+                        showLibPanel();
+                    }
+                };
+            }
+
+            // Render Panel List Function
+            const renderLibPanelList = (filter = '') => {
+                const listContainer = libSelectorPanel.querySelector('.lib-panel-list');
+                if (!listContainer) return;
+                
+                listContainer.innerHTML = '';
+                
+                let sortedLibs = [...libraries];
+                if (filter) {
+                    const lower = filter.toLowerCase();
+                    sortedLibs = sortedLibs.filter(l => l.name.toLowerCase().includes(lower));
+                }
+
+                sortedLibs.sort((a, b) => {
+                    if (a.pinned && !b.pinned) return -1;
+                    if (!a.pinned && b.pinned) return 1;
+                    return a.name.localeCompare(b.name);
+                });
+
+                if (sortedLibs.length === 0) {
+                    listContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">无匹配结果</div>';
+                    return;
+                }
+
+                sortedLibs.forEach(lib => {
+                    const item = document.createElement('div');
+                    const isActive = (lib.id === libraryData.id);
+                    
+                    item.style.cssText = `
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        padding: 10px 12px;
+                        border-radius: 8px;
+                        cursor: pointer;
+                        font-size: 13px;
+                        color: ${isActive ? '#1d9bf0' : '#ccc'};
+                        background: ${isActive ? 'rgba(29, 155, 240, 0.12)' : 'transparent'};
+                        margin-bottom: 4px;
+                        transition: all 0.15s;
+                        border: 1px solid ${isActive ? 'rgba(29, 155, 240, 0.3)' : 'transparent'};
+                    `;
+                    
+                    // Hover Effect
+                    item.onmouseenter = () => {
+                        if (!isActive) {
+                            item.style.background = 'rgba(255,255,255,0.06)';
+                            item.style.borderColor = 'rgba(255,255,255,0.1)';
+                        }
+                    };
+                    item.onmouseleave = () => {
+                        if (!isActive) {
+                            item.style.background = 'transparent';
+                            item.style.borderColor = 'transparent';
+                        }
+                    };
+
+                    // Content
+                    item.innerHTML = `
+                        <div style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding-right:12px;">
+                            ${lib.name}
+                        </div>
+                        <div class="actions" style="display: flex; gap: 8px; align-items: center;">
+                             <button class="pin-btn" title="${lib.pinned ? '取消置顶' : '置顶'}" style="
+                                background: transparent;
+                                border: none;
+                                cursor: pointer;
+                                padding: 4px;
+                                font-size: 15px;
+                                color: ${lib.pinned ? '#1d9bf0' : 'rgba(255,255,255,0.25)'};
+                                opacity: ${lib.pinned ? '1' : '0.6'};
+                                transition: all 0.2s;
+                             ">📌</button>
+                        </div>
+                    `;
+
+                    // Click to Switch Library
+                    item.onclick = (e) => {
+                        if (e.target.closest('button')) return;
+                        hideLibPanel();
+                        if (lib.id !== libraryData.id) onLibChange(lib.id);
+                    };
+                    
+                    // Pin Button Logic
+                    const pinBtn = item.querySelector('.pin-btn');
+                    pinBtn.onmouseenter = () => {
+                        pinBtn.style.opacity = '1';
+                        if (!lib.pinned) pinBtn.style.color = 'rgba(255,255,255,0.5)';
+                    };
+                    pinBtn.onmouseleave = () => {
+                        pinBtn.style.opacity = lib.pinned ? '1' : '0.6';
+                        if (!lib.pinned) pinBtn.style.color = 'rgba(255,255,255,0.25)';
+                    };
+                    pinBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        lib.pinned = !lib.pinned;
+                        if (this.onRenameLib) this.onRenameLib(lib.id, lib.name, lib.pinned); 
+                        renderLibPanelList(filter); 
+                    };
+                    
+                    listContainer.appendChild(item);
+                });
+            };
+
+            // Click Outside to Close Panel
+            this.shadow.addEventListener('click', (e) => {
+                if (libSelectorPanel.style.display === 'flex') {
+                    const path = e.composedPath();
+                    if (!path.includes(libSelectorPanel) && !path.includes(libTriggerArea)) {
+                        hideLibPanel();
+                    }
+                }
+            });
+
+            // Fix Action Buttons Bindings
+            const addLibBtn = this.shadow.querySelector('.add-lib-btn');
+            if (addLibBtn) addLibBtn.onclick = onAddLib;
+
+            const delLibBtn = this.shadow.querySelector('.del-lib-btn');
+            if (delLibBtn) delLibBtn.onclick = onDeleteLib;
 
             this.shadow.querySelector('.import-btn').onclick = onImport;
 
