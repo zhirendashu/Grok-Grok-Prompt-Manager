@@ -3059,9 +3059,16 @@
                     sortedLibs = sortedLibs.filter(l => l.name.toLowerCase().includes(lower));
                 }
 
+                // 排序逻辑：置顶优先，然后按 sortOrder（如果有），最后按名称
                 sortedLibs.sort((a, b) => {
                     if (a.pinned && !b.pinned) return -1;
                     if (!a.pinned && b.pinned) return 1;
+
+                    // 自定义排序
+                    const orderA = a.sortOrder !== undefined ? a.sortOrder : 999999;
+                    const orderB = b.sortOrder !== undefined ? b.sortOrder : 999999;
+                    if (orderA !== orderB) return orderA - orderB;
+
                     return a.name.localeCompare(b.name);
                 });
 
@@ -3070,7 +3077,13 @@
                     return;
                 }
 
-                sortedLibs.forEach(lib => {
+                // 拖拽状态
+                let draggedItem = null;
+                let draggedLib = null;
+                let longPressTimer = null;
+                let isDragging = false;
+
+                sortedLibs.forEach((lib, index) => {
                     const item = document.createElement('div');
                     const isActive = (lib.id === libraryData.id);
 
@@ -3078,7 +3091,7 @@
                         display: flex;
                         align-items: center;
                         justify-content: space-between;
-                        padding: 10px 12px;
+                        padding: 10px 8px 10px 12px;
                         border-radius: 8px;
                         cursor: pointer;
                         font-size: 13px;
@@ -3087,17 +3100,20 @@
                         margin-bottom: 4px;
                         transition: all 0.15s;
                         border: 1px solid ${isActive ? 'rgba(29, 155, 240, 0.3)' : 'transparent'};
+                        position: relative;
                     `;
+
+                    item.dataset.libId = lib.id;
 
                     // Hover Effect
                     item.onmouseenter = () => {
-                        if (!isActive) {
+                        if (!isActive && !isDragging) {
                             item.style.background = 'rgba(255,255,255,0.06)';
                             item.style.borderColor = 'rgba(255,255,255,0.1)';
                         }
                     };
                     item.onmouseleave = () => {
-                        if (!isActive) {
+                        if (!isActive && !isDragging) {
                             item.style.background = 'transparent';
                             item.style.borderColor = 'transparent';
                         }
@@ -3105,6 +3121,16 @@
 
                     // Content
                     item.innerHTML = `
+                        <div class="drag-handle" style="
+                            cursor: grab;
+                            padding: 4px;
+                            margin-right: 8px;
+                            color: rgba(255,255,255,0.3);
+                            font-size: 16px;
+                            line-height: 1;
+                            user-select: none;
+                            flex-shrink: 0;
+                        " title="长按拖动排序">⋮⋮</div>
                         <div style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding-right:12px;">
                             ${lib.name}
                         </div>
@@ -3142,9 +3168,115 @@
                         </div>
                     `;
 
+                    // 拖拽手柄事件
+                    const dragHandle = item.querySelector('.drag-handle');
+
+                    // 长按开始拖拽
+                    dragHandle.onmousedown = (e) => {
+                        e.preventDefault();
+                        longPressTimer = setTimeout(() => {
+                            isDragging = true;
+                            draggedItem = item;
+                            draggedLib = lib;
+                            item.style.opacity = '0.5';
+                            item.style.cursor = 'grabbing';
+                            dragHandle.style.cursor = 'grabbing';
+
+                            // 添加拖拽中的视觉效果
+                            item.style.boxShadow = '0 4px 12px rgba(29, 155, 240, 0.4)';
+                        }, 300); // 300ms 长按
+                    };
+
+                    dragHandle.onmouseup = () => {
+                        clearTimeout(longPressTimer);
+                    };
+
+                    dragHandle.onmouseleave = () => {
+                        clearTimeout(longPressTimer);
+                    };
+
+                    // 鼠标移动时显示插入位置
+                    item.onmousemove = (e) => {
+                        if (!isDragging || !draggedItem || draggedItem === item) return;
+
+                        const rect = item.getBoundingClientRect();
+                        const midpoint = rect.top + rect.height / 2;
+
+                        if (e.clientY < midpoint) {
+                            item.style.borderTop = '2px solid #1d9bf0';
+                            item.style.borderBottom = '';
+                        } else {
+                            item.style.borderBottom = '2px solid #1d9bf0';
+                            item.style.borderTop = '';
+                        }
+                    };
+
+                    item.onmouseleave = () => {
+                        if (isDragging) {
+                            item.style.borderTop = '';
+                            item.style.borderBottom = '';
+                        }
+                    };
+
+                    // 鼠标释放时完成拖拽
+                    item.onmouseup = (e) => {
+                        if (!isDragging || !draggedItem || draggedItem === item) return;
+
+                        item.style.borderTop = '';
+                        item.style.borderBottom = '';
+
+                        // 计算新位置
+                        const rect = item.getBoundingClientRect();
+                        const midpoint = rect.top + rect.height / 2;
+                        const insertBefore = e.clientY < midpoint;
+
+                        // 更新 sortOrder
+                        const newOrder = [];
+                        sortedLibs.forEach((l, i) => {
+                            if (l.id === draggedLib.id) return; // 跳过被拖拽的
+                            if (l.id === lib.id) {
+                                if (insertBefore) {
+                                    newOrder.push(draggedLib);
+                                    newOrder.push(l);
+                                } else {
+                                    newOrder.push(l);
+                                    newOrder.push(draggedLib);
+                                }
+                            } else {
+                                newOrder.push(l);
+                            }
+                        });
+
+                        // 保存新顺序
+                        newOrder.forEach((l, i) => {
+                            l.sortOrder = i;
+                        });
+
+                        // 保存到存储
+                        if (this.onPromptAction) {
+                            this.onPromptAction('reorderLibs', newOrder);
+                        }
+
+                        // 重置拖拽状态
+                        isDragging = false;
+                        if (draggedItem) {
+                            draggedItem.style.opacity = '1';
+                            draggedItem.style.cursor = 'pointer';
+                            draggedItem.style.boxShadow = '';
+                            const handle = draggedItem.querySelector('.drag-handle');
+                            if (handle) handle.style.cursor = 'grab';
+                        }
+                        draggedItem = null;
+                        draggedLib = null;
+
+                        // 重新渲染
+                        renderLibPanelList(filter);
+                    };
+
                     // Click to Switch Library
                     item.onclick = (e) => {
-                        if (e.target.closest('button')) return;
+                        if (e.target.closest('button') || e.target.closest('.drag-handle')) return;
+                        if (isDragging) return;
                         hideLibPanel();
                         if (lib.id !== libraryData.id) onLibChange(lib.id);
                     };
@@ -3211,6 +3343,20 @@
 
                     listContainer.appendChild(item);
                 });
+
+                // 全局鼠标释放事件
+                document.onmouseup = () => {
+                    clearTimeout(longPressTimer);
+                    if (isDragging && draggedItem) {
+                        draggedItem.style.opacity = '1';
+                        draggedItem.style.cursor = 'pointer';
+                        const handle = draggedItem.querySelector('.drag-handle');
+                        if (handle) handle.style.cursor = 'grab';
+                    }
+                    isDragging = false;
+                    draggedItem = null;
+                    draggedLib = null;
+                };
             };
 
             // Click Outside to Close Panel
@@ -5469,6 +5615,18 @@ Breast squeeze, pressing breasts together"></textarea>
                         this.storage.save(data);
                         this.loadLibraryData();
                     }
+                    break;
+                case 'reorderLibs':
+                    // 保存库的自定义排序
+                    const newOrder = prompt; // 这里 prompt 参数实际上是新的库数组
+                    newOrder.forEach(reorderedLib => {
+                        const idx = data.libraries.findIndex(l => l.id === reorderedLib.id);
+                        if (idx !== -1) {
+                            data.libraries[idx].sortOrder = reorderedLib.sortOrder;
+                        }
+                    });
+                    this.storage.save(data);
+                    this.loadLibraryData();
                     break;
             }
         }
