@@ -115,21 +115,21 @@
  * v4.3.1 (2026-01-17):
  * - UI: **Iconography Upgrade**. 全面替换为 SVG 单色图标，统一极简深色风格。
  * - Refactor: **Video Library Standard**. 视频随机模式库名标准化为 "随机视频专用" (严格匹配)。
- * - Fix: **Clean Slate**. 移除实验性 Gemini 代码，回归纯净稳定版。 * 
+ * - Fix: **Clean Slate**. 移除实验性 Gemini 代码，回归纯净稳定版。 *
  * v3.3.3 (2026-01-17):
  * - Feat: **📸 写真模式 (Portrait Mode)**
  *   - 在随机骰子菜单中新增 "写真模式"。
  *   - 允许设定固定的开头提示词 (Prompt Prefix)，支持持久化记忆。
  *   - 随机部分逻辑升级：**从该类型的所有库中**随机抽取 3-5 个提示词进行组合，不再局限于当前库。
  *   - 提供多样化的创作灵感，同时保持统一的画风框架。
- * 
+ *
  * v3.2.2 (2026-01-17):
  * - Fix: **CRITICAL** - 实现真正的文字/视频库分离
  * - 导入时自动设置 libraryType 字段 ('text' 或 'video')
  * - 加载时按 libraryType 过滤库列表
  * - 文字面板只显示文字库,视频面板只显示视频库
  * - 导入到视频面板的库不会再出现在文字面板
- * 
+ *
  * v3.2.1 (2026-01-16):
  * - Fix: **CRITICAL** - 修复粘贴导入标题丢失问题。重构 addNewPrompt 参数传递机制，改用对象模式避免参数错位。
  * - Fix: 粘贴导入按钮现在正确传递 name 字段，确保 【标题】 格式被正确识别和保存。
@@ -639,7 +639,7 @@
                 // 3. New User: Return Schema
                 console.log('[GPM] 初始化新用户数据');
                 return this.defaultSchema();
-                
+
             } catch (criticalError) {
                 console.error('[GPM] 🚨 严重错误，返回默认数据:', criticalError);
                 return this.defaultSchema();
@@ -728,7 +728,7 @@
         save(data) {
             try {
                 this.data = data || this.data;
-                
+
                 // 尝试序列化数据
                 let json;
                 try {
@@ -742,7 +742,7 @@
                 // ✨ Size Monitoring (5MB Browser Standard Warning)
                 const size = json.length;
                 const sizeMB = (size / 1024 / 1024).toFixed(2);
-                
+
                 // Browser LocalStorage limit is typically 5MB (approx 5 million characters)
                 if (size > 5 * 1024 * 1024) { // 5MB
                     console.error(`[GPM] ❌ 数据超过 5MB 限制 (${sizeMB} MB)`);
@@ -773,9 +773,9 @@
                         console.warn('[GPM] LocalStorage mirror skipped. Data saved to GM only.', e);
                     }
                 }
-                
+
                 return true;
-                
+
             } catch (criticalError) {
                 console.error('[GPM] 🚨 保存过程严重错误:', criticalError);
                 alert('🚨 数据保存失败\n\n发生未知错误，请查看控制台日志。');
@@ -1537,7 +1537,7 @@
 
             // ✨ Fix Persistence: If Right Panel has saved 'left' coordinate, use it.
             this.useFixedLeft = (this.side === 'right' && config.left !== undefined);
-            
+
             // ✨ 内存泄漏修复：事件注册表
             this._eventRegistry = new Map();
         }
@@ -1570,7 +1570,7 @@
                         <!-- Toolbar Row 1: Library Selection -->
                         <!-- Toolbar Row 1: Library Selection (Fixed Layout) -->
                         <div class="lib-row" style="display: flex; gap: 8px; align-items: center;">
-                            
+
                             <!-- Left: Library Name Trigger (Expands) -->
                             <div class="lib-trigger-area" style="
                                 flex: 1; display: flex; align-items: center; gap: 6px;
@@ -1579,7 +1579,7 @@
                                 transition: all 0.2s; overflow: hidden; height: 32px;
                             ">
                                 <span class="current-lib-name" style="
-                                    font-weight: 600; font-size: 14px; white-space: nowrap; 
+                                    font-weight: 600; font-size: 14px; white-space: nowrap;
                                     overflow: hidden; text-overflow: ellipsis; color: #fff;
                                 ">Loading...</span>
                                 <span style="font-size: 10px; opacity: 0.6; margin-top: 2px;">▼</span>
@@ -1770,19 +1770,19 @@
 
             // ✨ FIX: Robust Interaction Tracking (Focus/Blur)
     this.isInteracting = false;
-    
+
     // 事件管理方法
     this._bindEvent = (element, eventType, handler, key) => {
         // 先移除旧监听器（如果存在）
         this._unbindEvent(key);
-        
+
         // 绑定新监听器
         element.addEventListener(eventType, handler);
-        
+
         // 记录到注册表
         this._eventRegistry.set(key, { element, eventType, handler });
     };
-    
+
     this._unbindEvent = (key) => {
         const record = this._eventRegistry.get(key);
         if (record) {
@@ -1790,7 +1790,7 @@
             this._eventRegistry.delete(key);
         }
     };
-    
+
     // 清理所有事件（组件销毁时调用）
     this._cleanupAllEvents = () => {
         this._eventRegistry.forEach((record, key) => {
@@ -1798,35 +1798,35 @@
         });
         console.log(`[GPM] 已清理 ${this._eventRegistry.size} 个事件监听器`);
     };
-    
+
     this.refreshInteractionListeners = () => {
          // 清理旧的交互监听器
          const oldKeys = Array.from(this._eventRegistry.keys()).filter(k => k.startsWith('interaction-'));
          oldKeys.forEach(k => this._unbindEvent(k));
-         
+
          this.shadow.querySelectorAll('input, select, textarea').forEach((el, index) => {
              const keyPrefix = `interaction-${index}`;
-             
+
              // Focus 事件
              this._bindEvent(el, 'focus', () => {
                  this.isInteracting = true;
                  if (hideTimer) clearTimeout(hideTimer);
              }, `${keyPrefix}-focus`);
-             
+
              // Blur 事件
              this._bindEvent(el, 'blur', () => {
                  this.isInteracting = false;
                  // Delay check to allow focus to move to another element inside panel
                  setTimeout(() => checkEdgeProximity(), 200);
              }, `${keyPrefix}-blur`);
-             
+
              // Mousedown 事件
              this._bindEvent(el, 'mousedown', (e) => {
                  this.isInteracting = true;
                  if (hideTimer) clearTimeout(hideTimer);
                  e.stopPropagation(); // Stop bubble
              }, `${keyPrefix}-mousedown`);
-             
+
              // ✨ Special handling for Custom Library Selector (Input Search)
              if (el.classList.contains('lib-search-input-menu')) {
                  this._bindEvent(el, 'input', () => {
@@ -2139,7 +2139,7 @@
                     };
 
                     const opts = [];
-                    
+
                     // 🎯 Different modes for Text vs Video panel
                     if (this.side === 'left') {
                         // Text Panel Modes
@@ -2184,11 +2184,11 @@
                         };
                         item.onclick = () => {
                             console.log('[DEBUG] Menu item clicked:', opt.act);
-                            
+
                             // 🎯 DIRECT IMPLEMENTATION: Portrait mode
                             if (opt.act === 'portrait') {
                                 console.log('[DEBUG] Portrait mode - auto generation');
-                                
+
                                 // 🎯 First-time guide
                                 const hasSeenGuide = localStorage.getItem('gpm_portrait_guide_seen');
                                 if (!hasSeenGuide) {
@@ -2198,14 +2198,14 @@
                                         background: rgba(0,0,0,0.7); backdrop-filter: blur(5px);
                                         z-index: 999999; display: flex; align-items: center; justify-content: center;
                                     `;
-                                    
+
                                     const guideBox = document.createElement('div');
                                     guideBox.style.cssText = `
                                         background: rgba(20, 20, 30, 0.98); border: 1px solid rgba(255,255,255,0.2);
                                         border-radius: 16px; padding: 30px; max-width: 600px;
                                         box-shadow: 0 20px 60px rgba(0,0,0,0.8);
                                     `;
-                                    
+
                                     guideBox.innerHTML = `
                                         <div style="color: white; font-size: 24px; font-weight: 700; margin-bottom: 20px; text-align: center;">
                                             📸 写真模式使用说明
@@ -2213,14 +2213,14 @@
                                         <div style="color: #ccc; font-size: 14px; line-height: 1.8; margin-bottom: 25px;">
                                             <p style="margin-bottom: 15px;"><strong style="color: #1d9bf0;">✨ 写真模式是什么？</strong><br>
                                             一键生成专业写真提示词，自动组合标准开头 + 10条随机风格元素</p>
-                                            
+
                                             <p style="margin-bottom: 15px;"><strong style="color: #1d9bf0;">🎯 如何使用？</strong></p>
                                             <ol style="padding-left: 20px; margin-bottom: 15px;">
                                                 <li style="margin-bottom: 8px;">创建一个名为 <code style="background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 3px;">写真模式标准描述</code> 的提示词库</li>
                                                 <li style="margin-bottom: 8px;">在此库中添加您的标准写真开头（可添加多条，系统会随机选择）</li>
                                                 <li style="margin-bottom: 8px;">点击写真模式，即可自动生成完整提示词</li>
                                             </ol>
-                                            
+
                                             <p style="margin-bottom: 10px;"><strong style="color: #1d9bf0;">💡 示例开头：</strong><br>
                                             <code style="background: rgba(255,255,255,0.05); padding: 8px; border-radius: 4px; display: block; margin-top: 8px; font-size: 12px;">
                                             真实胶片直闪摄影，亚洲女性，小红书网红脸，表情冷漠而自信，姿态略带挑逗，身材真实吸引人
@@ -2239,10 +2239,10 @@
                                             ">知道了，开始使用</button>
                                         </div>
                                     `;
-                                    
+
                                     guideOverlay.appendChild(guideBox);
                                     document.body.appendChild(guideOverlay);
-                                    
+
                                     const closeGuide = (shouldProceed) => {
                                         guideOverlay.remove();
                                         localStorage.setItem('gpm_portrait_guide_seen', 'true');
@@ -2251,67 +2251,67 @@
                                             executePortraitMode();
                                         }
                                     };
-                                    
+
                                     guideBox.querySelector('#gpm-guide-cancel').onclick = () => closeGuide(false);
                                     guideBox.querySelector('#gpm-guide-confirm').onclick = () => closeGuide(true);
                                     guideOverlay.onclick = (e) => { if (e.target === guideOverlay) closeGuide(false); };
-                                    
+
                                     return; // Don't execute portrait mode yet
                                 }
-                                
+
                                 // Execute portrait mode
                                 const executePortraitMode = () => {
                                     // Determine type
                                     const panelType = this.side === 'left' ? 'text' : 'video';
-                                    
+
                                     // Get storage
                                     const storageService = new StorageService();
                                     const data = storageService.get();
-                                    
+
                                     // 🎯 Step 1: Find library named "写真模式标准描述"
-                                    const portraitLib = data.libraries.find(lib => 
+                                    const portraitLib = data.libraries.find(lib =>
                                         lib.name === '写真模式标准描述' || lib.name.includes('写真模式')
                                     );
-                                    
+
                                     if (!portraitLib || !portraitLib.prompts || portraitLib.prompts.length === 0) {
                                         alert('❌ 未找到"写真模式标准描述"库，或该库为空\n\n请按照说明创建：\n1. 点击"创建库"\n2. 库名输入：写真模式标准描述\n3. 添加标准写真开头');
                                         return;
                                     }
-                                    
+
                                     // 🎯 Step 2: Random pick 1 from portrait library as prefix
                                     const randomIndex = Math.floor(Math.random() * portraitLib.prompts.length);
                                     const portraitPrefix = portraitLib.prompts[randomIndex].content;
-                                    
+
                                     // 🎯 Step 3: Collect ALL prompts from all libraries of same type
                                     let allPromptsPool = [];
                                     data.libraries.forEach(lib => {
                                         const isTextLib = !lib.libraryType || lib.libraryType === 'text';
                                         const isVideoLib = lib.libraryType === 'video';
-                                        
+
                                         if ((panelType === 'text' && isTextLib) || (panelType === 'video' && isVideoLib)) {
                                             const validPrompts = lib.prompts.filter(p => !p.type || p.type === panelType);
                                             allPromptsPool = allPromptsPool.concat(validPrompts);
                                         }
                                     });
-                                    
+
                                     if (allPromptsPool.length === 0) {
                                         alert('❌ 所有库中没有找到提示词');
                                         return;
                                     }
-                                    
+
                                     // 🎯 Step 4: Random pick 10 from global pool
                                     const count = 10;
                                     const shuffled = [...allPromptsPool].sort(() => 0.5 - Math.random());
                                     const selected = shuffled.slice(0, Math.min(count, shuffled.length));
                                     const randomPart = selected.map(p => p.content).join(', ');
-                                    
+
                                     // 🎯 Step 5: Combine: prefix first, then random 10
                                     const finalPrompt = `${portraitPrefix}, ${randomPart}`;
-                                    
+
                                     // Insert
                                     const inputManager = new InputManager();
                                     inputManager.setValue(finalPrompt);
-                                    
+
                                     // Toast
                                     const toast = document.createElement('div');
                                     toast.textContent = `📸 写真模式：已生成（标准开头 + ${selected.length} 条随机提示词）`;
@@ -2324,14 +2324,14 @@
                                     document.body.appendChild(toast);
                                     setTimeout(() => toast.remove(), 3000);
                                 };
-                                
+
                                 // Execute for non-first-time users
                                 executePortraitMode();
-                                
+
                             } else if (opt.act === 'adult_portrait') {
                                 // 🔞 ADULT PORTRAIT MODE
                                 console.log('[DEBUG] Adult Portrait mode');
-                                
+
                                 // 🎯 First-time guide for R18
                                 const hasSeenR18Guide = localStorage.getItem('gpm_r18_guide_seen');
                                 if (!hasSeenR18Guide) {
@@ -2341,14 +2341,14 @@
                                         background: rgba(0,0,0,0.7); backdrop-filter: blur(5px);
                                         z-index: 999999; display: flex; align-items: center; justify-content: center;
                                     `;
-                                    
+
                                     const guideBox = document.createElement('div');
                                     guideBox.style.cssText = `
                                         background: rgba(20, 20, 30, 0.98); border: 1px solid rgba(233, 30, 99, 0.3);
                                         border-radius: 16px; padding: 30px; max-width: 600px;
                                         box-shadow: 0 20px 60px rgba(233, 30, 99, 0.3);
                                     `;
-                                    
+
                                     guideBox.innerHTML = `
                                         <div style="color: white; font-size: 24px; font-weight: 700; margin-bottom: 20px; text-align: center;">
                                             🔞 R18写真模式使用说明
@@ -2356,14 +2356,14 @@
                                         <div style="color: #ccc; font-size: 14px; line-height: 1.8; margin-bottom: 25px;">
                                             <p style="margin-bottom: 15px;"><strong style="color: #e91e63;">✨ R18写真模式是什么？</strong><br>
                                             升级版写真提示词生成，双重精准定位：标准写真开头 + 成人修饰语 + 10条随机元素</p>
-                                            
+
                                             <p style="margin-bottom: 15px;"><strong style="color: #e91e63;">🎯 如何使用？</strong></p>
                                             <ol style="padding-left: 20px; margin-bottom: 15px;">
                                                 <li style="margin-bottom: 8px;">创建库 <code style="background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 3px;">写真模式标准描述</code>（标准写真开头）</li>
                                                 <li style="margin-bottom: 8px;">创建库 <code style="background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 3px;">成人模式标准添加词</code>（成人修饰语）</li>
                                                 <li style="margin-bottom: 8px;">点击R18写真，系统自动从两库各抽1条 + 全局随机10条</li>
                                             </ol>
-                                            
+
                                             <p style="margin-bottom: 10px;"><strong style="color: #e91e63;">💡 成人修饰示例：</strong><br>
                                             <code style="background: rgba(255,255,255,0.05); padding: 8px; border-radius: 4px; display: block; margin-top: 8px; font-size: 12px;">
                                             姿态略带挑逗，身材真实吸引人，性感撩人，暴露度适中
@@ -2382,10 +2382,10 @@
                                             ">知道了，开始使用</button>
                                         </div>
                                     `;
-                                    
+
                                     guideOverlay.appendChild(guideBox);
                                     document.body.appendChild(guideOverlay);
-                                    
+
                                     const closeGuide = (shouldProceed) => {
                                         guideOverlay.remove();
                                         localStorage.setItem('gpm_r18_guide_seen', 'true');
@@ -2393,81 +2393,81 @@
                                             executeR18Mode();
                                         }
                                     };
-                                    
+
                                     guideBox.querySelector('#gpm-r18-guide-cancel').onclick = () => closeGuide(false);
                                     guideBox.querySelector('#gpm-r18-guide-confirm').onclick = () => closeGuide(true);
                                     guideOverlay.onclick = (e) => { if (e.target === guideOverlay) closeGuide(false); };
-                                    
+
                                     return;
                                 }
-                                
+
                                 const executeR18Mode = () => {
                                     // Determine type
                                     const panelType = this.side === 'left' ? 'text' : 'video';
-                                    
+
                                     // Get storage
                                     const storageService = new StorageService();
                                     const data = storageService.get();
-                                    
+
                                     // 🎯 Step 1: Find "写真模式标准描述" library (Strict First)
                                     let portraitLib = data.libraries.find(lib => lib.name === '写真模式标准描述');
                                     if (!portraitLib) {
                                         portraitLib = data.libraries.find(lib => lib.name.includes('写真模式'));
                                     }
-                                    
+
                                     if (!portraitLib || !portraitLib.prompts || portraitLib.prompts.length === 0) {
                                         alert('❌ 未找到"写真模式标准描述"库\n\n请先创建该库并添加标准写真开头');
                                         return;
                                     }
-                                    
+
                                     // 🎯 Step 2: Find "成人模式标准添加词" library (Strict First)
                                     let adultLib = data.libraries.find(lib => lib.name === '成人模式标准添加词');
                                     if (!adultLib) {
                                         adultLib = data.libraries.find(lib => lib.name.includes('成人模式'));
                                     }
-                                    
+
                                     if (!adultLib || !adultLib.prompts || adultLib.prompts.length === 0) {
                                         alert('❌ 未找到"成人模式标准添加词"库\n\n请创建该库并添加成人写真修饰词');
                                         return;
                                     }
-                                    
+
                                     // 🎯 Step 3: Random pick 1 from each library
                                     const portraitIndex = Math.floor(Math.random() * portraitLib.prompts.length);
                                     const portraitPrefix = portraitLib.prompts[portraitIndex].content;
-                                    
+
                                     const adultIndex = Math.floor(Math.random() * adultLib.prompts.length);
                                     const adultModifier = adultLib.prompts[adultIndex].content;
-                                    
+
                                     // 🎯 Step 4: Collect ALL prompts from all libraries of same type
                                     let allPromptsPool = [];
                                     data.libraries.forEach(lib => {
                                         const isTextLib = !lib.libraryType || lib.libraryType === 'text';
                                         const isVideoLib = lib.libraryType === 'video';
-                                        
+
                                         if ((panelType === 'text' && isTextLib) || (panelType === 'video' && isVideoLib)) {
                                             const validPrompts = lib.prompts.filter(p => !p.type || p.type === panelType);
                                             allPromptsPool = allPromptsPool.concat(validPrompts);
                                         }
                                     });
-                                    
+
                                     if (allPromptsPool.length === 0) {
                                         alert('❌ 所有库中没有找到提示词');
                                         return;
                                     }
-                                    
+
                                     // 🎯 Step 5: Random pick 10 from global pool
                                     const count = 10;
                                     const shuffled = [...allPromptsPool].sort(() => 0.5 - Math.random());
                                     const selected = shuffled.slice(0, Math.min(count, shuffled.length));
                                     const randomPart = selected.map(p => p.content).join(', ');
-                                    
+
                                     // 🎯 Step 6: Combine: portrait prefix + adult modifier + random 10
                                     const finalPrompt = `${portraitPrefix}, ${adultModifier}, ${randomPart}`;
-                                    
+
                                     // Insert
                                     const inputManager = new InputManager();
                                     inputManager.setValue(finalPrompt);
-                                    
+
                                     // Toast
                                     const toast = document.createElement('div');
                                     toast.innerHTML = `🔞 R18写真：已生成<br><span style="font-size:12px;opacity:0.8;display:block;margin-top:2px;">源: ${portraitLib.name} + ${adultLib.name}</span>`;
@@ -2481,13 +2481,13 @@
                                     document.body.appendChild(toast);
                                     setTimeout(() => toast.remove(), 3000);
                                 };
-                                
+
                                 executeR18Mode();
-                                
+
                             } else if (opt.act === 'video_random') {
                                 // 🎬 VIDEO RANDOM MODE
                                 console.log('[DEBUG] Video Random mode');
-                                
+
                                 // 🎯 First-time guide
                                 const hasSeenGuide = localStorage.getItem('gpm_video_random_guide_seen');
                                 if (!hasSeenGuide) {
@@ -2497,14 +2497,14 @@
                                         background: rgba(0,0,0,0.7); backdrop-filter: blur(5px);
                                         z-index: 999999; display: flex; align-items: center; justify-content: center;
                                     `;
-                                    
+
                                     const guideBox = document.createElement('div');
                                     guideBox.style.cssText = `
                                         background: rgba(20, 20, 30, 0.98); border: 1px solid rgba(103, 58, 183, 0.3);
                                         border-radius: 16px; padding: 30px; max-width: 600px;
                                         box-shadow: 0 20px 60px rgba(103, 58, 183, 0.3);
                                     `;
-                                    
+
                                     guideBox.innerHTML = `
                                         <div style="color: white; font-size: 24px; font-weight: 700; margin-bottom: 20px; text-align: center;">
                                             🎬 视频随机模式使用说明
@@ -2512,14 +2512,14 @@
                                         <div style="color: #ccc; font-size: 14px; line-height: 1.8; margin-bottom: 25px;">
                                             <p style="margin-bottom: 15px;"><strong style="color: #673ab7;">✨ 视频随机模式是什么？</strong><br>
                                             专为视频生成设计的精简模式，避免提示词过多混淆AI判断，每次只从专用库中抽取1条提示词</p>
-                                            
+
                                             <p style="margin-bottom: 15px;"><strong style="color: #673ab7;">🎯 如何使用？</strong></p>
                                             <ol style="padding-left: 20px; margin-bottom: 15px;">
                                                 <li style="margin-bottom: 8px;">在右侧视频面板创建库 <code style="background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 3px;">随机视频专用</code></li>
                                                 <li style="margin-bottom: 8px;">在该库中添加视频动作/氛围描述（每条独立完整）</li>
                                                 <li style="margin-bottom: 8px;">点击视频随机，系统自动随机抽取1条填入</li>
                                             </ol>
-                                            
+
                                             <p style="margin-bottom: 10px;"><strong style="color: #673ab7;">💡 提示词示例：</strong><br>
                                             <code style="background: rgba(255,255,255,0.05); padding: 8px; border-radius: 4px; display: block; margin-top: 8px; font-size: 12px;">
                                             Fabric: 细致黑色蕾丝边缘动作微微晃动，露出圆润头
@@ -2538,10 +2538,10 @@
                                             ">知道了，开始使用</button>
                                         </div>
                                     `;
-                                    
+
                                     overlay.appendChild(guideBox);
                                     document.body.appendChild(overlay);
-                                    
+
                                     const closeGuide = (shouldProceed) => {
                                         overlay.remove();
                                         localStorage.setItem('gpm_video_random_guide_seen', 'true');
@@ -2549,38 +2549,38 @@
                                             executeVideoRandom();
                                         }
                                     };
-                                    
+
                                     guideBox.querySelector('#gpm-video-guide-cancel').onclick = () => closeGuide(false);
                                     guideBox.querySelector('#gpm-video-guide-confirm').onclick = () => closeGuide(true);
                                     overlay.onclick = (e) => { if (e.target === overlay) closeGuide(false); };
-                                    
+
                                     return;
                                 }
-                                
+
                                 const executeVideoRandom = () => {
                                     // Get storage
                                     const storageService = new StorageService();
                                     const data = storageService.get();
-                                    
+
                                     // 🎯 Find "随机视频专用" library (Strict First)
                                     let videoLib = data.libraries.find(lib => lib.name === '随机视频专用');
                                     if (!videoLib) {
                                         videoLib = data.libraries.find(lib => lib.name.includes('随机视频专用'));
                                     }
-                                    
+
                                     if (!videoLib || !videoLib.prompts || videoLib.prompts.length === 0) {
                                         alert('❌ 未找到"随机视频专用"库，或该库为空\n\n请创建该库并添加视频提示词');
                                         return;
                                     }
-                                    
+
                                     // 🎯 Random pick 1 from video library
                                     const randomIndex = Math.floor(Math.random() * videoLib.prompts.length);
                                     const videoPrompt = videoLib.prompts[randomIndex].content;
-                                    
+
                                     // Insert
                                     const inputManager = new InputManager();
                                     inputManager.setValue(videoPrompt);
-                                    
+
                                     // Toast
                                     const toast = document.createElement('div');
                                     toast.innerHTML = `🎬 视频随机：已生成<br><span style="font-size:12px;opacity:0.8;display:block;margin-top:2px;">源: ${videoLib.name}</span>`;
@@ -2594,13 +2594,13 @@
                                     document.body.appendChild(toast);
                                     setTimeout(() => toast.remove(), 3000);
                                 };
-                                
+
                                 executeVideoRandom();
-                                
+
                             } else if (opt.act === 'video_r18') {
                                 // 🔞 VIDEO R18 MODE
                                 console.log('[DEBUG] Video R18 mode');
-                                
+
                                 // 🎯 First-time guide
                                 const hasSeenR18Guide = localStorage.getItem('gpm_video_r18_guide_seen');
                                 if (!hasSeenR18Guide) {
@@ -2610,14 +2610,14 @@
                                         background: rgba(0,0,0,0.7); backdrop-filter: blur(5px);
                                         z-index: 999999; display: flex; align-items: center; justify-content: center;
                                     `;
-                                    
+
                                     const guideBox = document.createElement('div');
                                     guideBox.style.cssText = `
                                         background: rgba(20, 20, 30, 0.98); border: 1px solid rgba(233, 30, 99, 0.3);
                                         border-radius: 16px; padding: 30px; max-width: 600px;
                                         box-shadow: 0 20px 60px rgba(233, 30, 99, 0.3);
                                     `;
-                                    
+
                                     guideBox.innerHTML = `
                                         <div style="color: white; font-size: 24px; font-weight: 700; margin-bottom: 20px; text-align: center;">
                                             🔞 R18视频模式使用说明
@@ -2625,14 +2625,14 @@
                                         <div style="color: #ccc; font-size: 14px; line-height: 1.8; margin-bottom: 25px;">
                                             <p style="margin-bottom: 15px;"><strong style="color: #e91e63;">✨ R18视频模式是什么？</strong><br>
                                             升级版视频生成，双重精准定位：基础视频提示词 + R18修饰语，只抽取2条避免混淆</p>
-                                            
+
                                             <p style="margin-bottom: 15px;"><strong style="color: #e91e63;">🎯 如何使用？</strong></p>
                                             <ol style="padding-left: 20px; margin-bottom: 15px;">
                                                 <li style="margin-bottom: 8px;">创建库 <code style="background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 3px;">随机视频专用</code>（基础视频描述）</li>
                                                 <li style="margin-bottom: 8px;">创建库 <code style="background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 3px;">R18视频添加提示词</code>（R18修饰）</li>
                                                 <li style="margin-bottom: 8px;">点击R18视频，系统从两库各抽1条自动组合</li>
                                             </ol>
-                                            
+
                                             <p style="margin-bottom: 10px;"><strong style="color: #e91e63;">💡 R18修饰示例：</strong><br>
                                             <code style="background: rgba(255,255,255,0.05); padding: 8px; border-radius: 4px; display: block; margin-top: 8px; font-size: 12px;">
                                             Pose: 身体侧躺并前倾下，腰线收紧呈弧线展开，布料微掀
@@ -2651,10 +2651,10 @@
                                             ">知道了，开始使用</button>
                                         </div>
                                     `;
-                                    
+
                                     overlay.appendChild(guideBox);
                                     document.body.appendChild(overlay);
-                                    
+
                                     const closeGuide = (shouldProceed) => {
                                         overlay.remove();
                                         localStorage.setItem('gpm_video_r18_guide_seen', 'true');
@@ -2662,55 +2662,55 @@
                                             executeVideoR18();
                                         }
                                     };
-                                    
+
                                     guideBox.querySelector('#gpm-video-r18-guide-cancel').onclick = () => closeGuide(false);
                                     guideBox.querySelector('#gpm-video-r18-guide-confirm').onclick = () => closeGuide(true);
                                     overlay.onclick = (e) => { if (e.target === overlay) closeGuide(false); };
-                                    
+
                                     return;
                                 }
-                                
+
                                 const executeVideoR18 = () => {
                                     // Get storage
                                     const storageService = new StorageService();
                                     const data = storageService.get();
-                                    
+
                                     // 🎯 Step 1: Find "随机视频专用" library (Strict First)
                                     let videoLib = data.libraries.find(lib => lib.name === '随机视频专用');
                                     if (!videoLib) {
                                         videoLib = data.libraries.find(lib => lib.name.includes('随机视频专用'));
                                     }
-                                    
+
                                     if (!videoLib || !videoLib.prompts || videoLib.prompts.length === 0) {
                                         alert('❌ 未找到"随机视频专用"库\n\n请先创建该库并添加视频提示词');
                                         return;
                                     }
-                                    
+
                                     // 🎯 Step 2: Find "R18视频添加提示词" library (Strict First)
                                     let r18VideoLib = data.libraries.find(lib => lib.name === 'R18视频添加提示词');
                                     if (!r18VideoLib) {
                                         r18VideoLib = data.libraries.find(lib => lib.name.includes('R18视频'));
                                     }
-                                    
+
                                     if (!r18VideoLib || !r18VideoLib.prompts || r18VideoLib.prompts.length === 0) {
                                         alert('❌ 未找到"R18视频添加提示词"库\n\n请创建该库并添加R18视频修饰词');
                                         return;
                                     }
-                                    
+
                                     // 🎯 Step 3: Random pick 1 from each library
                                     const videoIndex = Math.floor(Math.random() * videoLib.prompts.length);
                                     const videoPrompt = videoLib.prompts[videoIndex].content;
-                                    
+
                                     const r18Index = Math.floor(Math.random() * r18VideoLib.prompts.length);
                                     const r18Modifier = r18VideoLib.prompts[r18Index].content;
-                                    
+
                                     // 🎯 Step 4: Combine
                                     const finalPrompt = `${videoPrompt}, ${r18Modifier}`;
-                                    
+
                                     // Insert
                                     const inputManager = new InputManager();
                                     inputManager.setValue(finalPrompt);
-                                    
+
                                     // Toast
                                     const toast = document.createElement('div');
                                     toast.innerHTML = `🔞 R18视频：已生成<br><span style="font-size:12px;opacity:0.8;display:block;margin-top:2px;">源: ${videoLib.name} + ${r18VideoLib.name}</span>`;
@@ -2724,14 +2724,14 @@
                                     document.body.appendChild(toast);
                                     setTimeout(() => toast.remove(), 3000);
                                 };
-                                
+
                                 executeVideoR18();
-                                
+
                             } else {
                                 // 🎯 Check for first-time guide for other modes
                                 const guideKey = `gpm_${opt.act}_guide_seen`;
                                 const hasSeenGuide = localStorage.getItem(guideKey);
-                                
+
                                 if (!hasSeenGuide) {
                                     // Show guide based on mode
                                     const guides = {
@@ -2775,7 +2775,7 @@
                                             }
                                         }
                                     };
-                                    
+
                                     const guide = guides[opt.act];
                                     if (guide) {
                                         const overlay = document.createElement('div');
@@ -2784,14 +2784,14 @@
                                             background: rgba(0,0,0,0.7); backdrop-filter: blur(5px);
                                             z-index: 999999; display: flex; align-items: center; justify-content: center;
                                         `;
-                                        
+
                                         const guideBox = document.createElement('div');
                                         guideBox.style.cssText = `
                                             background: rgba(20, 20, 30, 0.98); border: 1px solid ${guide.color}40;
                                             border-radius: 16px; padding: 30px; max-width: 600px;
                                             box-shadow: 0 20px 60px ${guide.color}50;
                                         `;
-                                        
+
                                         guideBox.innerHTML = `
                                             <div style="color: white; font-size: 24px; font-weight: 700; margin-bottom: 20px; text-align: center;">
                                                 ${guide.title}
@@ -2799,12 +2799,12 @@
                                             <div style="color: #ccc; font-size: 14px; line-height: 1.8; margin-bottom: 25px;">
                                                 <p style="margin-bottom: 15px;"><strong style="color: ${guide.color};">✨ 这是什么？</strong><br>
                                                 ${guide.content.what}</p>
-                                                
+
                                                 <p style="margin-bottom: 15px;"><strong style="color: ${guide.color};">🎯 如何使用？</strong></p>
                                                 <ol style="padding-left: 20px; margin-bottom: 15px;">
                                                     ${guide.content.how.map(step => `<li style="margin-bottom: 8px;">${step}</li>`).join('')}
                                                 </ol>
-                                                
+
                                                 <p style="margin-bottom: 10px;"><strong style="color: ${guide.color};">💡 生成示例：</strong><br>
                                                 <code style="background: rgba(255,255,255,0.05); padding: 8px; border-radius: 4px; display: block; margin-top: 8px; font-size: 12px;">
                                                 ${guide.content.example}
@@ -2823,10 +2823,10 @@
                                                 ">知道了，开始使用</button>
                                             </div>
                                         `;
-                                        
+
                                         document.body.appendChild(overlay);
                                         overlay.appendChild(guideBox);
-                                        
+
                                         const closeGuide = (shouldProceed) => {
                                             overlay.remove();
                                             localStorage.setItem(guideKey, 'true');
@@ -2834,17 +2834,17 @@
                                                 this.onRandomReq(opt.act);
                                             }
                                         };
-                                        
+
                                         guideBox.querySelector('#gpm-mode-guide-cancel').onclick = () => closeGuide(false);
                                         guideBox.querySelector('#gpm-mode-guide-confirm').onclick = () => closeGuide(true);
                                         overlay.onclick = (e) => { if (e.target === overlay) closeGuide(false); };
-                                        
+
                                         menu.remove();
                                         document.removeEventListener('click', closeMenu);
                                         return;
                                     }
                                 }
-                                
+
                                 // Other modes - use callback
                                 console.log('[DEBUG] this.onRandomReq exists?', !!this.onRandomReq);
                                 if (this.onRandomReq) {
@@ -2854,7 +2854,7 @@
                                     alert('ERROR: onRandomReq callback not set!');
                                 }
                             }
-                            
+
                             menu.remove();
                             document.removeEventListener('click', closeMenu);
                         };
@@ -2915,7 +2915,7 @@
 
             // Create Independent Floating Panel (Similar to Auto-Retry Panel)
             let libSelectorPanel = this.shadow.querySelector('.gpm-lib-selector-panel');
-            
+
             if (!libSelectorPanel) {
                 // Create Panel
                 libSelectorPanel = document.createElement('div');
@@ -2924,8 +2924,8 @@
                     position: fixed;
                     top: 120px;
                     ${isLeft ? 'left: 400px;' : 'right: 400px;'}
-                    width: 300px;
-                    max-height: 500px;
+                    width: 320px;
+                    max-height: 600px;
                     background: rgba(20, 20, 30, 0.95);
                     backdrop-filter: blur(16px);
                     -webkit-backdrop-filter: blur(16px);
@@ -2984,7 +2984,7 @@
                     flex: 1;
                     overflow-y: auto;
                     padding: 8px;
-                    max-height: 400px;
+                    max-height: 500px;
                 `;
                 listContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">Loading...</div>';
 
@@ -3050,9 +3050,9 @@
             const renderLibPanelList = (filter = '') => {
                 const listContainer = libSelectorPanel.querySelector('.lib-panel-list');
                 if (!listContainer) return;
-                
+
                 listContainer.innerHTML = '';
-                
+
                 let sortedLibs = [...libraries];
                 if (filter) {
                     const lower = filter.toLowerCase();
@@ -3073,7 +3073,7 @@
                 sortedLibs.forEach(lib => {
                     const item = document.createElement('div');
                     const isActive = (lib.id === libraryData.id);
-                    
+
                     item.style.cssText = `
                         display: flex;
                         align-items: center;
@@ -3088,7 +3088,7 @@
                         transition: all 0.15s;
                         border: 1px solid ${isActive ? 'rgba(29, 155, 240, 0.3)' : 'transparent'};
                     `;
-                    
+
                     // Hover Effect
                     item.onmouseenter = () => {
                         if (!isActive) {
@@ -3108,17 +3108,37 @@
                         <div style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding-right:12px;">
                             ${lib.name}
                         </div>
-                        <div class="actions" style="display: flex; gap: 8px; align-items: center;">
+                        <div class="actions" style="display: flex; gap: 6px; align-items: center;">
                              <button class="pin-btn" title="${lib.pinned ? '取消置顶' : '置顶'}" style="
                                 background: transparent;
                                 border: none;
                                 cursor: pointer;
                                 padding: 4px;
-                                font-size: 15px;
+                                font-size: 14px;
                                 color: ${lib.pinned ? '#1d9bf0' : 'rgba(255,255,255,0.25)'};
-                                opacity: ${lib.pinned ? '1' : '0.6'};
+                                opacity: ${lib.pinned ? '1' : '0.5'};
                                 transition: all 0.2s;
                              ">📌</button>
+                             <button class="rename-btn" title="重命名" style="
+                                background: transparent;
+                                border: none;
+                                cursor: pointer;
+                                padding: 4px;
+                                font-size: 13px;
+                                color: rgba(255,255,255,0.3);
+                                opacity: 0.5;
+                                transition: all 0.2s;
+                             ">✏️</button>
+                             <button class="delete-btn" title="删除库" style="
+                                background: transparent;
+                                border: none;
+                                cursor: pointer;
+                                padding: 4px;
+                                font-size: 13px;
+                                color: rgba(255,100,100,0.5);
+                                opacity: 0.5;
+                                transition: all 0.2s;
+                             ">🗑️</button>
                         </div>
                     `;
 
@@ -3128,7 +3148,7 @@
                         hideLibPanel();
                         if (lib.id !== libraryData.id) onLibChange(lib.id);
                     };
-                    
+
                     // Pin Button Logic
                     const pinBtn = item.querySelector('.pin-btn');
                     pinBtn.onmouseenter = () => {
@@ -3136,16 +3156,59 @@
                         if (!lib.pinned) pinBtn.style.color = 'rgba(255,255,255,0.5)';
                     };
                     pinBtn.onmouseleave = () => {
-                        pinBtn.style.opacity = lib.pinned ? '1' : '0.6';
+                        pinBtn.style.opacity = lib.pinned ? '1' : '0.5';
                         if (!lib.pinned) pinBtn.style.color = 'rgba(255,255,255,0.25)';
                     };
                     pinBtn.onclick = (e) => {
                         e.stopPropagation();
                         lib.pinned = !lib.pinned;
-                        if (this.onRenameLib) this.onRenameLib(lib.id, lib.name, lib.pinned); 
-                        renderLibPanelList(filter); 
+                        // 保存置顶状态
+                        if (this.onPromptAction) {
+                            this.onPromptAction('toggleLibPin', lib);
+                        }
+                        renderLibPanelList(filter);
                     };
-                    
+
+                    // Rename Button Logic
+                    const renameBtn = item.querySelector('.rename-btn');
+                    renameBtn.onmouseenter = () => {
+                        renameBtn.style.opacity = '1';
+                        renameBtn.style.color = 'rgba(255,255,255,0.7)';
+                    };
+                    renameBtn.onmouseleave = () => {
+                        renameBtn.style.opacity = '0.5';
+                        renameBtn.style.color = 'rgba(255,255,255,0.3)';
+                    };
+                    renameBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        const newName = prompt('重命名库 (Rename Library):', lib.name);
+                        if (newName && newName.trim() && newName !== lib.name) {
+                            if (this.onRenameLib) {
+                                this.onRenameLib(lib.id, newName.trim());
+                            }
+                        }
+                    };
+
+                    // Delete Button Logic
+                    const deleteBtn = item.querySelector('.delete-btn');
+                    deleteBtn.onmouseenter = () => {
+                        deleteBtn.style.opacity = '1';
+                        deleteBtn.style.color = 'rgba(255,100,100,0.9)';
+                    };
+                    deleteBtn.onmouseleave = () => {
+                        deleteBtn.style.opacity = '0.5';
+                        deleteBtn.style.color = 'rgba(255,100,100,0.5)';
+                    };
+                    deleteBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        if (confirm(`确定要删除库 "${lib.name}" 吗？\n\n此操作不可撤销！`)) {
+                            hideLibPanel();
+                            if (this.onDeleteLib) {
+                                this.onDeleteLib(lib.id);
+                            }
+                        }
+                    };
+
                     listContainer.appendChild(item);
                 });
             };
@@ -3521,19 +3584,19 @@
             const PAGINATION_THRESHOLD = 50; // 超过 50 条启用分页
             const PAGE_SIZE = 50; // 每页 50 条
             const enablePagination = filtered.length > PAGINATION_THRESHOLD;
-            
+
             if (!this._currentPage) this._currentPage = 1;
             if (!this._lastFilteredData || JSON.stringify(this._lastFilteredData) !== JSON.stringify(filtered)) {
                 // 数据变化时重置分页
                 this._currentPage = 1;
                 this._lastFilteredData = filtered;
             }
-            
+
             const totalPages = enablePagination ? Math.ceil(filtered.length / PAGE_SIZE) : 1;
             const startIndex = enablePagination ? (this._currentPage - 1) * PAGE_SIZE : 0;
             const endIndex = enablePagination ? Math.min(startIndex + PAGE_SIZE, filtered.length) : filtered.length;
             const itemsToRender = filtered.slice(startIndex, endIndex);
-            
+
             // 显示分页信息
             if (enablePagination) {
                 const paginationInfo = document.createElement('div');
@@ -3551,7 +3614,7 @@
                     ${this._currentPage < totalPages ? '<span style="color: #1d9bf0; cursor: pointer;" class="load-more-btn">▼ 加载更多</span>' : ''}
                 `;
                 container.appendChild(paginationInfo);
-                
+
                 // 加载更多按钮
                 const loadMoreBtn = paginationInfo.querySelector('.load-more-btn');
                 if (loadMoreBtn) {
@@ -4591,7 +4654,7 @@ Breast squeeze, pressing breasts together"></textarea>
             this.fixPrompt = localStorage.getItem("grok-fix-prompt") !== "0";
             this.maxRetryLimit = Number(localStorage.getItem("grok-max-retry-limit") || 5);
             this.lastTypedPrompt = localStorage.getItem("grok-last-typed-prompt") || "";
-            
+
             // 批量生成视频相关（默认开启）
             this.batchVideoEnabled = localStorage.getItem("grok-batch-video") !== "0";
             this.isBatchGenerating = false;
@@ -4779,13 +4842,13 @@ Breast squeeze, pressing breasts together"></textarea>
                 <button id="gpm-btn-reset" class="gpm-btn" style="width: 100%; margin-top: 4px; justify-content: center;">
                     重置计数 (Reset Count)
                 </button>
-                
+
                 <div style="border-top: 1px solid rgba(255,255,255,0.1); margin-top: 8px; padding-top: 8px;">
                     <label class="gpm-retry-checkbox">
                         <input type="checkbox" id="gpm-chk-batch" ${this.batchVideoEnabled ? 'checked' : ''}>
                         <span>🎬 批量生成视频</span>
                     </label>
-                    
+
                     <button id="gpm-btn-batch-all" class="gpm-btn" style="width: 100%; margin-top: 4px; justify-content: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;" ${!this.batchVideoEnabled || this.isBatchGenerating ? 'disabled' : ''}>
                         ${this.isBatchGenerating ? '⏳ 生成中...' : '🎬 一键生成全部'}
                     </button>
@@ -4815,11 +4878,11 @@ Breast squeeze, pressing breasts together"></textarea>
                 this.retryCount = 0;
                 this.updatePanel();
             };
-            
+
             // 批量生成视频事件
             const batchCheckbox = this.panel.querySelector('#gpm-chk-batch');
             const batchButton = this.panel.querySelector('#gpm-btn-batch-all');
-            
+
             if (batchCheckbox) {
                 batchCheckbox.onchange = (e) => {
                     this.batchVideoEnabled = e.target.checked;
@@ -4827,7 +4890,7 @@ Breast squeeze, pressing breasts together"></textarea>
                     this.updatePanel();
                 };
             }
-            
+
             if (batchButton) {
                 batchButton.onclick = () => {
                     this.startBatchGeneration();
@@ -4962,71 +5025,71 @@ Breast squeeze, pressing breasts together"></textarea>
                 setTimeout(() => { this.isRetrying = false; }, 1500);
             }, 1000);
         }
-        
+
         // 批量生成视频
         async startBatchGeneration() {
             if (this.isBatchGenerating) {
                 alert('批量生成正在进行中，请稍候...');
                 return;
             }
-            
+
             // 查找所有可见范围内的"生成视频"按钮
             const buttons = Array.from(document.querySelectorAll('button[aria-label="生成视频"]'));
             const visibleButtons = buttons.filter(btn => {
                 const rect = btn.getBoundingClientRect();
                 // 检查是否在可见范围内
-                return rect.top >= 0 && 
-                       rect.left >= 0 && 
-                       rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) && 
+                return rect.top >= 0 &&
+                       rect.left >= 0 &&
+                       rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
                        rect.right <= (window.innerWidth || document.documentElement.clientWidth) &&
-                       rect.width > 0 && 
-                       rect.height > 0 && 
+                       rect.width > 0 &&
+                       rect.height > 0 &&
                        !btn.disabled;
             });
-            
+
             if (visibleButtons.length === 0) {
                 alert('当前可见范围内未找到可生成视频的按钮！\n\n提示：\n- 请滚动页面查看更多图片\n- 确保在收藏页面');
                 return;
             }
-            
+
             const confirmed = confirm(`找到 ${visibleButtons.length} 个可见的"生成视频"按钮。\n\n是否立即全部生成？\n\n注意：\n- 每个视频间隔 2 秒\n- 可能消耗大量配额`);
-            
+
             if (!confirmed) return;
-            
+
             this.isBatchGenerating = true;
             this.updatePanel();
-            
+
             console.log(`[批量生成] 开始处理 ${visibleButtons.length} 个视频`);
-            
+
             let successCount = 0;
             let failCount = 0;
-            
+
             for (let i = 0; i < visibleButtons.length; i++) {
                 try {
                     const btn = visibleButtons[i];
-                    
+
                     // 滚动到按钮位置
                     btn.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     await new Promise(r => setTimeout(r, 500));
-                    
+
                     // 点击按钮
                     btn.click();
                     successCount++;
-                    
+
                     console.log(`[批量生成] 已点击 ${i + 1}/${visibleButtons.length}`);
-                    
+
                     // 延迟 2 秒避免限流
                     await new Promise(r => setTimeout(r, 2000));
-                    
+
                 } catch (error) {
                     console.error(`[批量生成] 处理第 ${i + 1} 个按钮时出错:`, error);
                     failCount++;
                 }
             }
-            
+
             this.isBatchGenerating = false;
             this.updatePanel();
-            
+
             alert(`✅ 批量生成完成！\n\n成功: ${successCount}\n失败: ${failCount}\n总计: ${visibleButtons.length}`);
             console.log(`[批量生成] 完成！成功: ${successCount}, 失败: ${failCount}`);
         }
@@ -5395,6 +5458,16 @@ Breast squeeze, pressing breasts together"></textarea>
                         this.storage.save(data);
                         this.loadLibraryData();
                         this.showToast('已删除 (Deleted)');
+                    }
+                    break;
+                case 'toggleLibPin':
+                    // 切换库的置顶状态
+                    const lib = prompt; // 这里 prompt 参数实际上是 library 对象
+                    const libIndex = data.libraries.findIndex(l => l.id === lib.id);
+                    if (libIndex !== -1) {
+                        data.libraries[libIndex].pinned = lib.pinned;
+                        this.storage.save(data);
+                        this.loadLibraryData();
                     }
                     break;
             }
@@ -6137,7 +6210,7 @@ Breast squeeze, pressing breasts together"></textarea>
         showPortraitConfigModal(currentValue, onConfirm) {
             console.log('[DEBUG] showPortraitConfigModal called with:', currentValue);
             alert('[DEBUG] showPortraitConfigModal is being executed!');
-            
+
             const overlay = document.createElement('div');
             overlay.style.cssText = `
                 position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
@@ -6186,7 +6259,7 @@ Breast squeeze, pressing breasts together"></textarea>
             overlay.onclick = (e) => { if (e.target === overlay) close(); };
             overlay.appendChild(modal);
             document.body.appendChild(overlay); // 🎯 CRITICAL FIX: Append to body directly
-            
+
             // Focus
             requestAnimationFrame(() => {
                 if(textarea) textarea.focus();
@@ -6197,7 +6270,7 @@ Breast squeeze, pressing breasts together"></textarea>
             const data = this.storage.get();
             const activeLibId = type === 'text' ? data.activeTextLibraryId : data.activeVideoLibraryId;
             const activeLib = data.libraries.find(l => l.id === activeLibId);
-            
+
             // ⚠️ FIX: Portrait mode uses GLOBAL pool, so we shouldn't block if current lib is empty
             // Only check activeLib emptiness for non-global modes
             if (action !== 'portrait') {
@@ -6212,58 +6285,58 @@ Breast squeeze, pressing breasts together"></textarea>
             if (action === 'portrait') {
                 // 📸 写真模式 - 简化版
                 console.log('[GPM] Portrait Mode - Simplified');
-                
+
                 // 获取上次保存的开头
                 const savedPrefix = localStorage.getItem('gpm_portrait_prefix') || '';
-                
+
                 // 使用 prompt 让用户输入
                 const userInput = prompt(
                     '📸 写真模式 - 请输入固定的开头部分：\n（留空则使用纯随机）',
                     savedPrefix
                 );
-                
+
                 // 用户取消了
                 if (userInput === null) {
                     return;
                 }
-                
+
                 // 保存用户输入
                 if (userInput.trim()) {
                     localStorage.setItem('gpm_portrait_prefix', userInput.trim());
                 }
-                
+
                 // 🎯 从所有同类型库中收集提示词
                 let allPromptsPool = [];
                 data.libraries.forEach(lib => {
                     const isTextLib = !lib.libraryType || lib.libraryType === 'text';
                     const isVideoLib = lib.libraryType === 'video';
-                    
+
                     if ((type === 'text' && isTextLib) || (type === 'video' && isVideoLib)) {
                         const validPrompts = lib.prompts.filter(p => !p.type || p.type === type);
                         allPromptsPool = allPromptsPool.concat(validPrompts);
                     }
                 });
-                
+
                 if (allPromptsPool.length === 0) {
                     this.showToast('❌ 所有库中没有找到提示词');
                     return;
                 }
-                
+
                 // 随机抽取 3-5 个
                 const count = Math.floor(Math.random() * 3) + 3; // 3 to 5
                 const shuffled = [...allPromptsPool].sort(() => 0.5 - Math.random());
                 const selected = shuffled.slice(0, Math.min(count, shuffled.length));
                 const randomPart = selected.map(p => p.content).join(', ');
-                
+
                 // 组合
-                const finalPrompt = userInput.trim() 
-                    ? `${userInput.trim()}, ${randomPart}` 
+                const finalPrompt = userInput.trim()
+                    ? `${userInput.trim()}, ${randomPart}`
                     : randomPart;
-                
+
                 // 插入
                 this.inputManager.insert(finalPrompt);
                 this.showToast(`📸 写真模式：已从 ${allPromptsPool.length} 条数据中随机生成`);
-                
+
                 return;
             } else if (action === 'random3') {
                 // 随机抽取3个提示词
