@@ -2978,40 +2978,47 @@
                     ">✕</button>
                 `;
 
-                // 添加拖动功能
+                // 添加拖动功能（参考 BottomPanel 的实现）
                 let isDraggingPanel = false;
-                let panelOffsetX = 0;
-                let panelOffsetY = 0;
+                let startX, startY, initialLeft, initialTop;
+
+                const onMove = (e) => {
+                    if (!isDraggingPanel) return;
+                    const dx = e.clientX - startX;
+                    const dy = e.clientY - startY;
+                    libSelectorPanel.style.left = (initialLeft + dx) + 'px';
+                    libSelectorPanel.style.top = (initialTop + dy) + 'px';
+                    libSelectorPanel.style.right = 'auto';
+                };
+
+                const onUp = () => {
+                    if (!isDraggingPanel) return;
+                    isDraggingPanel = false;
+                    header.style.cursor = 'move';
+
+                    // 保存位置
+                    const rect = libSelectorPanel.getBoundingClientRect();
+                    localStorage.setItem('gpm_libPanelPos', JSON.stringify({
+                        left: rect.left,
+                        top: rect.top
+                    }));
+
+                    document.removeEventListener('mousemove', onMove);
+                    document.removeEventListener('mouseup', onUp);
+                };
 
                 header.onmousedown = (e) => {
                     if (e.target.closest('.close-lib-panel-btn')) return;
                     isDraggingPanel = true;
+                    startX = e.clientX;
+                    startY = e.clientY;
                     const rect = libSelectorPanel.getBoundingClientRect();
-                    panelOffsetX = e.clientX - rect.left;
-                    panelOffsetY = e.clientY - rect.top;
+                    initialLeft = rect.left;
+                    initialTop = rect.top;
                     header.style.cursor = 'grabbing';
-                };
 
-                document.onmousemove = (e) => {
-                    if (!isDraggingPanel) return;
-                    const newLeft = e.clientX - panelOffsetX;
-                    const newTop = e.clientY - panelOffsetY;
-                    libSelectorPanel.style.left = newLeft + 'px';
-                    libSelectorPanel.style.top = newTop + 'px';
-                    libSelectorPanel.style.right = 'auto';
-                };
-
-                document.onmouseup = () => {
-                    if (isDraggingPanel) {
-                        isDraggingPanel = false;
-                        header.style.cursor = 'move';
-                        // 保存位置
-                        const rect = libSelectorPanel.getBoundingClientRect();
-                        localStorage.setItem('gpm_libPanelPos', JSON.stringify({
-                            left: rect.left,
-                            top: rect.top
-                        }));
-                    }
+                    document.addEventListener('mousemove', onMove);
+                    document.addEventListener('mouseup', onUp);
                 };
 
                 // Search Box
@@ -3169,7 +3176,7 @@
                         }
                     };
                     item.onmouseleave = () => {
-                        if (!isActive && !isDragging) {
+                        if (!isActive) {
                             item.style.background = 'transparent';
                             item.style.borderColor = 'transparent';
                         }
