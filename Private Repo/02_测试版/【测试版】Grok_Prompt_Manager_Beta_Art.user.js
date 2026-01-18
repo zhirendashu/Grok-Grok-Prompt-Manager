@@ -2994,9 +2994,12 @@
                     if (!isDraggingPanel) return;
                     const dx = e.clientX - startX;
                     const dy = e.clientY - startY;
-                    libSelectorPanel.style.left = (initialLeft + dx) + 'px';
-                    libSelectorPanel.style.top = (initialTop + dy) + 'px';
+                    const newLeft = initialLeft + dx;
+                    const newTop = initialTop + dy;
+                    libSelectorPanel.style.left = newLeft + 'px';
+                    libSelectorPanel.style.top = newTop + 'px';
                     libSelectorPanel.style.right = 'auto';
+                    console.log('[GPM] 库面板移动中:', newLeft, newTop);
                 };
 
                 const onUp = () => {
@@ -3016,7 +3019,12 @@
                 };
 
                 header.onmousedown = (e) => {
+                    // 只允许在标题文字区域拖动，排除按钮和其他交互元素
                     if (e.target.closest('.close-lib-panel-btn')) return;
+                    if (e.target.tagName === 'INPUT') return;
+                    if (e.target.tagName === 'BUTTON') return;
+
+                    console.log('[GPM] 库面板拖动开始');
                     isDraggingPanel = true;
                     startX = e.clientX;
                     startY = e.clientY;
