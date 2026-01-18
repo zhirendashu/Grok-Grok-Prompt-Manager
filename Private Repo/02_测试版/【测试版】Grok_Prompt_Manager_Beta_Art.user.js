@@ -1537,6 +1537,9 @@
 
             // ✨ Fix Persistence: If Right Panel has saved 'left' coordinate, use it.
             this.useFixedLeft = (this.side === 'right' && config.left !== undefined);
+            
+            // ✨ 内存泄漏修复：事件注册表
+            this._eventRegistry = new Map();
         }
 
         renderInternal() {
@@ -1767,39 +1770,72 @@
 
             // ✨ FIX: Robust Interaction Tracking (Focus/Blur)
     this.isInteracting = false;
+    
+    // 事件管理方法
+    this._bindEvent = (element, eventType, handler, key) => {
+        // 先移除旧监听器（如果存在）
+        this._unbindEvent(key);
+        
+        // 绑定新监听器
+        element.addEventListener(eventType, handler);
+        
+        // 记录到注册表
+        this._eventRegistry.set(key, { element, eventType, handler });
+    };
+    
+    this._unbindEvent = (key) => {
+        const record = this._eventRegistry.get(key);
+        if (record) {
+            record.element.removeEventListener(record.eventType, record.handler);
+            this._eventRegistry.delete(key);
+        }
+    };
+    
+    // 清理所有事件（组件销毁时调用）
+    this._cleanupAllEvents = () => {
+        this._eventRegistry.forEach((record, key) => {
+            this._unbindEvent(key);
+        });
+        console.log(`[GPM] 已清理 ${this._eventRegistry.size} 个事件监听器`);
+    };
+    
     this.refreshInteractionListeners = () => {
-         this.shadow.querySelectorAll('input, select, textarea').forEach(el => {
-             // Avoid duplicate bindings
-             if(el.dataset.interactionBound) return;
-
-             el.addEventListener('focus', () => {
+         // 清理旧的交互监听器
+         const oldKeys = Array.from(this._eventRegistry.keys()).filter(k => k.startsWith('interaction-'));
+         oldKeys.forEach(k => this._unbindEvent(k));
+         
+         this.shadow.querySelectorAll('input, select, textarea').forEach((el, index) => {
+             const keyPrefix = `interaction-${index}`;
+             
+             // Focus 事件
+             this._bindEvent(el, 'focus', () => {
                  this.isInteracting = true;
                  if (hideTimer) clearTimeout(hideTimer);
-             });
-             el.addEventListener('blur', () => {
+             }, `${keyPrefix}-focus`);
+             
+             // Blur 事件
+             this._bindEvent(el, 'blur', () => {
                  this.isInteracting = false;
                  // Delay check to allow focus to move to another element inside panel
                  setTimeout(() => checkEdgeProximity(), 200);
-             });
-             // Capture mousedown to prevent hiding while clicking
-             el.addEventListener('mousedown', (e) => {
+             }, `${keyPrefix}-blur`);
+             
+             // Mousedown 事件
+             this._bindEvent(el, 'mousedown', (e) => {
                  this.isInteracting = true;
                  if (hideTimer) clearTimeout(hideTimer);
                  e.stopPropagation(); // Stop bubble
-             });
+             }, `${keyPrefix}-mousedown`);
              
              // ✨ Special handling for Custom Library Selector (Input Search)
              if (el.classList.contains('lib-search-input-menu')) {
-                 // Prevent auto-hide when typing in search
-                 el.addEventListener('input', () => {
+                 this._bindEvent(el, 'input', () => {
                      this.isInteracting = true;
                      if (hideTimer) clearTimeout(hideTimer);
-                 });
+                 }, `${keyPrefix}-input`);
              }
-
-             el.dataset.interactionBound = 'true';
          });
-    };
+     };
 
     // Initial Bind
     this.refreshInteractionListeners();
