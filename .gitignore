@@ -28,6 +28,8 @@ library/
 raw_data/
 tests/
 tools/
+docs/
+Grok prompt/
 grok-imagine-loop/
 grok-imagine-loop-latest/
 自动重试/
