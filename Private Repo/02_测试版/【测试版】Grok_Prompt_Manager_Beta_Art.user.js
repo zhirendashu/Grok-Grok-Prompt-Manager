@@ -774,6 +774,7 @@
                     }
                 }
 
+                console.log('[GPM] ✅ 数据已保存到 GM_setValue');
                 return true;
 
             } catch (criticalError) {
@@ -3046,6 +3047,9 @@
                 };
             }
 
+            // 保存 this 引用，供内部函数使用
+            const self = this;
+
             // Render Panel List Function
             const renderLibPanelList = (filter = '') => {
                 const listContainer = libSelectorPanel.querySelector('.lib-panel-list');
@@ -3289,8 +3293,8 @@
                         });
 
                         // 保存到存储
-                        if (this.onPromptAction) {
-                            this.onPromptAction('reorderLibs', newOrder);
+                        if (self.onPromptAction) {
+                            self.onPromptAction('reorderLibs', newOrder);
                         }
 
                         // 清理拖拽状态
@@ -3333,10 +3337,17 @@
                     };
                     pinBtn.onclick = (e) => {
                         e.stopPropagation();
+                        console.log('[GPM] 置顶按钮被点击:', lib.name);
                         lib.pinned = !lib.pinned;
+                        console.log('[GPM] 新的置顶状态:', lib.pinned);
+                        console.log('[GPM] onPromptAction 是否存在:', !!self.onPromptAction);
+
                         // 保存置顶状态
-                        if (this.onPromptAction) {
-                            this.onPromptAction('toggleLibPin', lib);
+                        if (self.onPromptAction) {
+                            console.log('[GPM] 调用 onPromptAction...');
+                            self.onPromptAction('toggleLibPin', lib);
+                        } else {
+                            console.error('[GPM] ❌ onPromptAction 未定义！');
                         }
                         renderLibPanelList(filter);
                     };
@@ -3355,8 +3366,8 @@
                         e.stopPropagation();
                         const newName = prompt('重命名库 (Rename Library):', lib.name);
                         if (newName && newName.trim() && newName !== lib.name) {
-                            if (this.onRenameLib) {
-                                this.onRenameLib(lib.id, newName.trim());
+                            if (self.onRenameLib) {
+                                self.onRenameLib(lib.id, newName.trim());
                             }
                         }
                     };
@@ -3375,8 +3386,8 @@
                         e.stopPropagation();
                         if (confirm(`确定要删除库 "${lib.name}" 吗？\n\n此操作不可撤销！`)) {
                             hideLibPanel();
-                            if (this.onDeleteLib) {
-                                this.onDeleteLib(lib.id);
+                            if (self.onDeleteLib) {
+                                self.onDeleteLib(lib.id);
                             }
                         }
                     };
