@@ -5629,6 +5629,36 @@ Breast squeeze, pressing breasts together"></textarea>
 
         handlePromptAction(action, prompt, type) {
             const data = this.storage.get();
+
+            // 处理库级别的操作（不需要 activeLib 和 pIndex）
+            if (action === 'toggleLibPin') {
+                // 切换库的置顶状态
+                const lib = prompt; // 这里 prompt 参数实际上是 library 对象
+                const libIndex = data.libraries.findIndex(l => l.id === lib.id);
+                if (libIndex !== -1) {
+                    data.libraries[libIndex].pinned = lib.pinned;
+                    console.log(`[GPM] 置顶状态已更新: ${lib.name} -> ${lib.pinned ? '已置顶' : '未置顶'}`);
+                    this.storage.save(data);
+                    this.loadLibraryData();
+                }
+                return;
+            }
+
+            if (action === 'reorderLibs') {
+                // 保存库的自定义排序
+                const newOrder = prompt; // 这里 prompt 参数实际上是新的库数组
+                newOrder.forEach(reorderedLib => {
+                    const idx = data.libraries.findIndex(l => l.id === reorderedLib.id);
+                    if (idx !== -1) {
+                        data.libraries[idx].sortOrder = reorderedLib.sortOrder;
+                    }
+                });
+                this.storage.save(data);
+                this.loadLibraryData();
+                return;
+            }
+
+            // 处理提示词级别的操作（需要 activeLib 和 pIndex）
             const activeLibId = type === 'text' ? data.activeTextLibraryId : data.activeVideoLibraryId;
             const activeLib = data.libraries.find(l => l.id === activeLibId);
             if (!activeLib) return;
@@ -5688,29 +5718,6 @@ Breast squeeze, pressing breasts together"></textarea>
                         this.loadLibraryData();
                         this.showToast('已删除 (Deleted)');
                     }
-                    break;
-                case 'toggleLibPin':
-                    // 切换库的置顶状态
-                    const lib = prompt; // 这里 prompt 参数实际上是 library 对象
-                    const libIndex = data.libraries.findIndex(l => l.id === lib.id);
-                    if (libIndex !== -1) {
-                        data.libraries[libIndex].pinned = lib.pinned;
-                        console.log(`[GPM] 置顶状态已更新: ${lib.name} -> ${lib.pinned ? '已置顶' : '未置顶'}`);
-                        this.storage.save(data);
-                        this.loadLibraryData();
-                    }
-                    break;
-                case 'reorderLibs':
-                    // 保存库的自定义排序
-                    const newOrder = prompt; // 这里 prompt 参数实际上是新的库数组
-                    newOrder.forEach(reorderedLib => {
-                        const idx = data.libraries.findIndex(l => l.id === reorderedLib.id);
-                        if (idx !== -1) {
-                            data.libraries[idx].sortOrder = reorderedLib.sortOrder;
-                        }
-                    });
-                    this.storage.save(data);
-                    this.loadLibraryData();
                     break;
             }
         }
