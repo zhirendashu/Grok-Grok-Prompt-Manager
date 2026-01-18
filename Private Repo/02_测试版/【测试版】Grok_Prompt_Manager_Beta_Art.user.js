@@ -587,32 +587,83 @@
         }
 
         load() {
-            // 1. Try loading v2 data (GM storage)
-            let v2Data = GM_getValue(DB_KEY, null);
-            if (v2Data) return JSON.parse(v2Data);
-
-            // 1.5 ✨ RECOVERY: Check LocalStorage Mirror (Fixes new script instance data loss)
             try {
-                const mirror = localStorage.getItem('GPM_V2_MIRROR');
-                if (mirror) {
-                    console.log('[GPM] ♻️ Found LocalStorage mirror! Restoring data...');
-                    const restored = JSON.parse(mirror);
-                    GM_setValue(DB_KEY, mirror); // Sync to new GM instance
-                    return restored;
+                // 1. Try loading v2 data (GM storage)
+                let v2Data = GM_getValue(DB_KEY, null);
+                if (v2Data) {
+                    try {
+                        const parsed = JSON.parse(v2Data);
+                        // 数据完整性校验
+                        if (this.validateData(parsed)) {
+                            return parsed;
+                        } else {
+                            console.warn('[GPM] ⚠️ V2 数据结构损坏，尝试恢复...');
+                            this.backupCorruptedData('v2_corrupted', v2Data);
+                        }
+                    } catch (parseError) {
+                        console.error('[GPM] ❌ V2 数据解析失败:', parseError);
+                        this.backupCorruptedData('v2_parse_error', v2Data);
+                    }
                 }
+
+                // 1.5 ✨ RECOVERY: Check LocalStorage Mirror (Fixes new script instance data loss)
+                try {
+                    const mirror = localStorage.getItem('GPM_V2_MIRROR');
+                    if (mirror) {
+                        console.log('[GPM] ♻️ Found LocalStorage mirror! Restoring data...');
+                        const restored = JSON.parse(mirror);
+                        if (this.validateData(restored)) {
+                            GM_setValue(DB_KEY, mirror); // Sync to new GM instance
+                            return restored;
+                        } else {
+                            console.warn('[GPM] Mirror 数据损坏，跳过恢复');
+                        }
+                    }
+                } catch (e) {
+                    console.error('[GPM] Failed to restore from mirror:', e);
+                }
+
+                // 2. Fallback: Try loading v0.19 data and migrate
+                let oldData = GM_getValue(OLD_DB_KEY, null);
+                if (oldData) {
+                    try {
+                        console.log('[GPM] Migrating data from v0.19...');
+                        const parsed = JSON.parse(oldData);
+                        return this.migrate(parsed);
+                    } catch (migrateError) {
+                        console.error('[GPM] ❌ 迁移失败:', migrateError);
+                        this.backupCorruptedData('old_migrate_error', oldData);
+                    }
+                }
+
+                // 3. New User: Return Schema
+                console.log('[GPM] 初始化新用户数据');
+                return this.defaultSchema();
+                
+            } catch (criticalError) {
+                console.error('[GPM] 🚨 严重错误，返回默认数据:', criticalError);
+                return this.defaultSchema();
+            }
+        }
+
+        // 新增：数据完整性校验
+        validateData(data) {
+            if (!data || typeof data !== 'object') return false;
+            if (!Array.isArray(data.libraries)) return false;
+            if (!data.settings || typeof data.settings !== 'object') return false;
+            return true;
+        }
+
+        // 新增：备份损坏数据
+        backupCorruptedData(suffix, rawData) {
+            try {
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                const backupKey = `GPM_BACKUP_${suffix}_${timestamp}`;
+                localStorage.setItem(backupKey, rawData);
+                console.log(`[GPM] 💾 已备份损坏数据到: ${backupKey}`);
             } catch (e) {
-                console.error('[GPM] Failed to restore from mirror:', e);
+                console.error('[GPM] 备份失败:', e);
             }
-
-            // 2. Fallback: Try loading v0.19 data and migrate
-            let oldData = GM_getValue(OLD_DB_KEY, null);
-            if (oldData) {
-                console.log('[GPM] Migrating data from v0.19...');
-                return this.migrate(JSON.parse(oldData));
-            }
-
-            // 3. New User: Return Schema
-            return this.defaultSchema();
         }
 
         defaultSchema() {
@@ -675,25 +726,60 @@
         }
 
         save(data) {
-            this.data = data || this.data;
-            const json = JSON.stringify(this.data);
-
-            // ✨ Size Monitoring (5MB Browser Standard Warning)
-            const size = json.length;
-            // Browser LocalStorage limit is typically 5MB (approx 5 million characters)
-            if (size > 5 * 1024 * 1024) { // 5MB
-                console.warn(`[GPM] ⚠️ Storage usage exceeds 5MB standard (${(size / 1024 / 1024).toFixed(2)} MB). LocalStorage backup may fail.`);
-            } else if (size > 4 * 1024 * 1024) { // 4MB
-                console.log(`[GPM] ℹ️ Storage usage: ${(size / 1024 / 1024).toFixed(2)} MB (Approaching 5MB limit)`);
-            }
-
-            GM_setValue(DB_KEY, json);
-
-            // Backup to localStorage for safety
             try {
-                localStorage.setItem('GPM_V2_MIRROR', json);
-            } catch (e) {
-                console.warn('[GPM] LocalStorage mirror skipped (likely > 5MB quota). Data saved to GM only.');
+                this.data = data || this.data;
+                
+                // 尝试序列化数据
+                let json;
+                try {
+                    json = JSON.stringify(this.data);
+                } catch (stringifyError) {
+                    console.error('[GPM] ❌ 数据序列化失败（可能包含循环引用）:', stringifyError);
+                    alert('⚠️ 数据保存失败：数据结构异常\n\n请联系开发者或尝试导出备份后重置。');
+                    return false;
+                }
+
+                // ✨ Size Monitoring (5MB Browser Standard Warning)
+                const size = json.length;
+                const sizeMB = (size / 1024 / 1024).toFixed(2);
+                
+                // Browser LocalStorage limit is typically 5MB (approx 5 million characters)
+                if (size > 5 * 1024 * 1024) { // 5MB
+                    console.error(`[GPM] ❌ 数据超过 5MB 限制 (${sizeMB} MB)`);
+                    alert(`❌ 存储空间不足\n\n当前数据大小：${sizeMB} MB\n浏览器限制：5 MB\n\n建议操作：\n1. 导出备份当前数据\n2. 删除部分不常用的库\n3. 清理浏览器缓存后重试`);
+                    return false;
+                } else if (size > 4.5 * 1024 * 1024) { // 4.5MB
+                    console.warn(`[GPM] ⚠️ 数据接近 5MB 限制 (${sizeMB} MB)，建议清理`);
+                } else if (size > 4 * 1024 * 1024) { // 4MB
+                    console.log(`[GPM] ℹ️ Storage usage: ${sizeMB} MB (Approaching 5MB limit)`);
+                }
+
+                // 保存到 GM 存储
+                try {
+                    GM_setValue(DB_KEY, json);
+                } catch (gmError) {
+                    console.error('[GPM] ❌ GM 存储失败:', gmError);
+                    alert('⚠️ 数据保存失败\n\n可能原因：\n- Tampermonkey 存储配额已满\n- 浏览器权限受限\n\n请尝试重启浏览器或重装脚本。');
+                    return false;
+                }
+
+                // Backup to localStorage for safety
+                try {
+                    localStorage.setItem('GPM_V2_MIRROR', json);
+                } catch (e) {
+                    if (e.name === 'QuotaExceededError') {
+                        console.warn(`[GPM] LocalStorage 镜像跳过（超过 5MB 配额: ${sizeMB} MB）。数据已保存到 GM。`);
+                    } else {
+                        console.warn('[GPM] LocalStorage mirror skipped. Data saved to GM only.', e);
+                    }
+                }
+                
+                return true;
+                
+            } catch (criticalError) {
+                console.error('[GPM] 🚨 保存过程严重错误:', criticalError);
+                alert('🚨 数据保存失败\n\n发生未知错误，请查看控制台日志。');
+                return false;
             }
         }
 
