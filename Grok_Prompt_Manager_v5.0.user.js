@@ -2040,7 +2040,7 @@
                                             
                                             <p style="margin-bottom: 10px;"><strong style="color: #1d9bf0;">💡 示例开头：</strong><br>
                                             <code style="background: rgba(255,255,255,0.05); padding: 8px; border-radius: 4px; display: block; margin-top: 8px; font-size: 12px;">
-                                            真实胶片直闪摄影，85mm人像镜头，表情自然自信，眼神清澈，专业影棚光效，构图完美，高画质
+                                            真实胶片摄影，85mm人像镜头，表情从容自信，眼神清澈，自然光效，构图完美，高画质
                                             </code></p>
                                         </div>
                                         <div style="display: flex; gap: 10px; justify-content: flex-end;">
@@ -2452,7 +2452,7 @@
                                             
                                             <p style="margin-bottom: 10px;"><strong style="color: #e91e63;">💡 R18修饰示例：</strong><br>
                                             <code style="background: rgba(255,255,255,0.05); padding: 8px; border-radius: 4px; display: block; margin-top: 8px; font-size: 12px;">
-                                            Pose: 身体侧躺并前倾下，腰线收紧呈弧线展开，布料微掀
+                                            Pose: 模特自然站立，侧身45度，双手自然下垂，眼神注视镜头
                                             </code></p>
                                         </div>
                                         <div style="display: flex; gap: 10px; justify-content: flex-end;">
@@ -5677,7 +5677,7 @@ Breast squeeze, pressing breasts together"></textarea>
                 <textarea class="prefix-input" style="
                     width: 100%; height: 100px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2);
                     border-radius: 6px; color: white; padding: 10px; font-size: 14px; resize: vertical;
-                " placeholder="例如: 真实胶片直闪摄影，亚洲女性...">${currentValue || ''}</textarea>
+                " placeholder="例如: 真实胶片摄影，85mm人像镜头...">${currentValue || ''}</textarea>
                 <div style="display: flex; justify-content: flex-end; gap: 10px;">
                     <button class="gpm-btn cancel-btn" style="padding: 6px 15px; background: transparent; border: 1px solid rgba(255,255,255,0.2);">取消</button>
                     <button class="gpm-btn confirm-btn" style="padding: 6px 15px; background: var(--gpm-primary); color: white; border: none;">确认生成</button>
