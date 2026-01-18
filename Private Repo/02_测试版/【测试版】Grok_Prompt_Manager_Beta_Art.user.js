@@ -3170,20 +3170,44 @@
 
                     // 拖拽手柄事件
                     const dragHandle = item.querySelector('.drag-handle');
+                    let dragClone = null; // 跟随鼠标的克隆元素
 
                     // 长按开始拖拽
                     dragHandle.onmousedown = (e) => {
                         e.preventDefault();
+                        const startX = e.clientX;
+                        const startY = e.clientY;
+
                         longPressTimer = setTimeout(() => {
                             isDragging = true;
                             draggedItem = item;
                             draggedLib = lib;
-                            item.style.opacity = '0.5';
-                            item.style.cursor = 'grabbing';
-                            dragHandle.style.cursor = 'grabbing';
 
-                            // 添加拖拽中的视觉效果
-                            item.style.boxShadow = '0 4px 12px rgba(29, 155, 240, 0.4)';
+                            // 创建跟随鼠标的克隆元素
+                            dragClone = item.cloneNode(true);
+                            dragClone.style.cssText = `
+                                position: fixed;
+                                left: ${e.clientX - 20}px;
+                                top: ${e.clientY - 20}px;
+                                width: ${item.offsetWidth}px;
+                                background: rgba(29, 155, 240, 0.2);
+                                border: 2px solid #1d9bf0;
+                                border-radius: 8px;
+                                padding: 10px 8px 10px 12px;
+                                z-index: 999999;
+                                pointer-events: none;
+                                opacity: 0.9;
+                                box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+                                transform: rotate(2deg);
+                            `;
+                            document.body.appendChild(dragClone);
+
+                            // 原始项变为占位符
+                            item.style.opacity = '0.3';
+                            item.style.border = '2px dashed rgba(255,255,255,0.2)';
+                            item.style.background = 'transparent';
+
+                            dragHandle.style.cursor = 'grabbing';
                         }, 300); // 300ms 长按
                     };
 
@@ -3202,17 +3226,26 @@
                         const rect = item.getBoundingClientRect();
                         const midpoint = rect.top + rect.height / 2;
 
+                        // 清除所有其他项的边框
+                        listContainer.querySelectorAll('[data-lib-id]').forEach(el => {
+                            if (el !== draggedItem) {
+                                el.style.borderTop = '';
+                                el.style.borderBottom = '';
+                            }
+                        });
+
+                        // 只在当前项显示插入线
                         if (e.clientY < midpoint) {
-                            item.style.borderTop = '2px solid #1d9bf0';
+                            item.style.borderTop = '3px solid #1d9bf0';
                             item.style.borderBottom = '';
                         } else {
-                            item.style.borderBottom = '2px solid #1d9bf0';
+                            item.style.borderBottom = '3px solid #1d9bf0';
                             item.style.borderTop = '';
                         }
                     };
 
                     item.onmouseleave = () => {
-                        if (isDragging) {
+                        if (isDragging && item !== draggedItem) {
                             item.style.borderTop = '';
                             item.style.borderBottom = '';
                         }
@@ -3222,8 +3255,11 @@
                     item.onmouseup = (e) => {
                         if (!isDragging || !draggedItem || draggedItem === item) return;
 
-                        item.style.borderTop = '';
-                        item.style.borderBottom = '';
+                        // 清除所有边框
+                        listContainer.querySelectorAll('[data-lib-id]').forEach(el => {
+                            el.style.borderTop = '';
+                            el.style.borderBottom = '';
+                        });
 
                         // 计算新位置
                         const rect = item.getBoundingClientRect();
@@ -3257,12 +3293,16 @@
                             this.onPromptAction('reorderLibs', newOrder);
                         }
 
-                        // 重置拖拽状态
+                        // 清理拖拽状态
+                        if (dragClone) {
+                            dragClone.remove();
+                            dragClone = null;
+                        }
                         isDragging = false;
                         if (draggedItem) {
                             draggedItem.style.opacity = '1';
-                            draggedItem.style.cursor = 'pointer';
-                            draggedItem.style.boxShadow = '';
+                            draggedItem.style.border = '';
+                            draggedItem.style.background = '';
                             const handle = draggedItem.querySelector('.drag-handle');
                             if (handle) handle.style.cursor = 'grab';
                         }
@@ -3344,14 +3384,46 @@
                     listContainer.appendChild(item);
                 });
 
+                // 全局鼠标移动事件（让克隆元素跟随鼠标）
+                document.onmousemove = (e) => {
+                    if (isDragging && draggedItem) {
+                        // 查找克隆元素
+                        const clone = document.body.querySelector('[style*="position: fixed"]');
+                        if (clone && clone.style.position === 'fixed') {
+                            clone.style.left = (e.clientX - 20) + 'px';
+                            clone.style.top = (e.clientY - 20) + 'px';
+                        }
+                    }
+                };
+
                 // 全局鼠标释放事件
                 document.onmouseup = () => {
                     clearTimeout(longPressTimer);
+
+                    // 清理克隆元素
+                    const clones = document.body.querySelectorAll('[style*="position: fixed"][style*="pointer-events: none"]');
+                    clones.forEach(clone => {
+                        if (clone.textContent && clone.querySelector('.drag-handle')) {
+                            clone.remove();
+                        }
+                    });
+
+                    // 重置拖拽状态
                     if (isDragging && draggedItem) {
                         draggedItem.style.opacity = '1';
-                        draggedItem.style.cursor = 'pointer';
+                        draggedItem.style.border = '';
+                        draggedItem.style.background = '';
                         const handle = draggedItem.querySelector('.drag-handle');
                         if (handle) handle.style.cursor = 'grab';
+
+                        // 清除所有插入线
+                        const container = libSelectorPanel.querySelector('.lib-panel-list');
+                        if (container) {
+                            container.querySelectorAll('[data-lib-id]').forEach(el => {
+                                el.style.borderTop = '';
+                                el.style.borderBottom = '';
+                            });
+                        }
                     }
                     isDragging = false;
                     draggedItem = null;
