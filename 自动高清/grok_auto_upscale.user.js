@@ -292,6 +292,17 @@
 
         async findAndClickUpscale() {
             if (this.isProcessing) return;
+            
+            // Deduplication Check based on URL (Post ID)
+            // Example: grok.com/imagine/post/UUID
+            const match = window.location.href.match(/\/post\/([a-zA-Z0-9-]+)/);
+            const postId = match ? match[1] : window.location.href;
+            
+            if (this.processedVideos.has(postId)) {
+                log('⏭️ Post already processed:', postId);
+                return;
+            }
+
             this.isProcessing = true;
 
             await this.waitForGeneration();
@@ -300,6 +311,20 @@
             await new Promise(r => setTimeout(r, 100)); // Minimized wait
 
             try {
+                // Check if Upscale is ALREADY DONE (Disabled button)
+                // We do a quick check for disabled buttons with relevant keywords
+                const disabledBtn = Array.from(document.querySelectorAll('button[disabled]')).find(b => {
+                     const t = (b.innerText || b.ariaLabel || '').toLowerCase();
+                     return t.includes('升级') || t.includes('upscale') || t.includes('hd');
+                });
+                
+                if (disabledBtn && this.isVisible(disabledBtn)) {
+                    log('🛑 Already Upscaled (Button Disabled)');
+                    this.processedVideos.add(postId); // Mark as done
+                    UI.setStatus('✅ 已是高清');
+                    return; 
+                }
+
                 // Strategy A: Direct
                 let btn = this.findBtnByKeywords(['升级视频', '升级', '放大', 'Upscale', '高清', 'HD']);
                 
@@ -313,7 +338,23 @@
                         
                         // Retry finding inside menu
                         for(let i=0; i<5; i++) {
-                            await new Promise(r => setTimeout(r, 500)); 
+                            await new Promise(r => setTimeout(r, 200)); 
+                            
+                            // Check for DISABLED upscale button in menu
+                            // This means we opened the menu and found "Upscale" but it's greyed out -> Done.
+                             const menuDisabled = Array.from(document.querySelectorAll('div[role="menuitem"][aria-disabled="true"], button[disabled]')).find(b => {
+                                const t = (b.innerText || b.ariaLabel || '').toLowerCase();
+                                return t.includes('升级') || t.includes('upscale') || t.includes('hd');
+                            });
+                            
+                            if (menuDisabled) {
+                                log('🛑 Found Disabled Upscale option in menu. Task complete.');
+                                this.processedVideos.add(postId);
+                                UI.setStatus('✅ 已是高清');
+                                // Close menu if possible? Or just leave it.
+                                return;
+                            }
+
                             btn = this.findBtnByKeywords(['升级视频', '升级', '放大', 'Upscale', '高清', 'HD']);
                             if(btn) break;
                         }
@@ -343,11 +384,17 @@
 
                     await this.simulateClick(btn);
                     
+                    // Mark as processed immediately after successful click
+                    this.processedVideos.add(postId);
+                    
                     // Reduced post-click wait
                     await new Promise(r => setTimeout(r, 2000)); 
                     UI.setStatus('✅ 完成');
                 } else {
                     log('❌ No Upscale button found.');
+                    // Don't mark as processed if failed, so it can retry? 
+                    // Or maybe mark it to prevent infinite loops? 
+                    // Let's NOT mark it, but the observer loop limit will handle it.
                     UI.setStatus('❓ 未找到');
                 }
 

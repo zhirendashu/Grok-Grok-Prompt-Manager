@@ -1,9 +1,11 @@
 // ==UserScript==
 // @name         植人大树 Prompt Manager 3.0
 // @namespace    http://tampermonkey.net/
-// @version      4.3.0
+// @version      5.0
 // @description  The Next-Gen Prompt Manager for Grok. Glassmorphism UI, Smart Templates, and Cloud Sync.
-// @author       AntiGravity
+// @author       植人大树
+// @namespace    https://link3.cc/zhirendashu
+// @license      CC BY-NC-SA 4.0
 // @match        https://grok.com/*
 // @match        https://x.com/*
 // @match        https://twitter.com/*
@@ -17,6 +19,13 @@
 /**
  * 📜 Changelog
  * 
+ * v5.0 (2026-01-18):
+ * - 🎉 **正式版发布 (Official Release)**
+ * - 🛡️ **著作权保护 (Copyright Protection)**: 添加作者署名与防伪标识
+ * - 🔒 **隐私安全 (Privacy & Safety)**: 全面清洗并替换了敏感提示词范本，确保合规
+ * - ✨ **UI 优化 (UI Polish)**: 统一图标风格，优化交互体验
+ * - 🔧 **问题修复 (Bug Fixes)**: 修复了 CSS 样式问题与已知 BUG
+ *
  * v3.3.3 (2026-01-17):
  * - Feat: **📸 写真模式 (Portrait Mode)**
  *   - 在随机骰子菜单中新增 "写真模式"。
@@ -80,6 +89,9 @@
 
 (function () {
     'use strict';
+            
+    // 🛡️ AUTH SIGNATURE
+    const __AUTH_SIGNATURE = "179689535&0814";
 
     // ✨ SELF-EXCLUSION: Do not run UI in the Assist Popup
     if (window.name === 'GrokAssist') {
@@ -1473,8 +1485,18 @@
                         background: 'rgba(20,20,30,0.95)', border: '1px solid rgba(255,255,255,0.1)',
                         borderRadius: '8px', padding: '6px', zIndex: '100002',
                         backdropFilter: 'blur(10px)', boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
-                        display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '160px'
+                        display: 'flex', flexDirection: 'column', gap: '2px', minWidth: '160px'
                     });
+
+                    // ✨ UI Unified: SVG Icons
+                    const icons = {
+                        portrait: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>',
+                        adult: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>',
+                        dice: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 8h.01"></path><path d="M8 8h.01"></path><path d="M8 16h.01"></path><path d="M16 16h.01"></path><path d="M12 12h.01"></path></svg>',
+                        mix: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r="2.5"></circle><circle cx="17.5" cy="10.5" r="2.5"></circle><circle cx="8.5" cy="7.5" r="2.5"></circle><circle cx="6.5" cy="12.5" r="2.5"></circle><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c0.926 0 1.648-0.746 1.648-1.688 0-0.437-0.18-0.835-0.437-1.125-0.29-0.289-0.438-0.652-0.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"></path></svg>',
+                        cyclone: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 12H8c-5.5 0-10-4.5-10-10"></path><path d="M21 12c0 5.5-4.5 10-10 10"></path><path d="M14 2c5.5 0 10 4.5 10 10"></path><path d="M8 12c0-5.5 4.5-10 10-10"></path></svg>',
+                        video: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line><line x1="2" y1="7" x2="7" y2="7"></line><line x1="2" y1="17" x2="7" y2="17"></line><line x1="17" y1="17" x2="22" y2="17"></line><line x1="17" y1="7" x2="22" y2="7"></line></svg>'
+                    };
 
                     const opts = [];
                     
@@ -1482,29 +1504,44 @@
                     if (this.side === 'left') {
                         // Text Panel Modes
                         opts.push(
-                            { label: '📸 写真模式', act: 'portrait' },
-                            { label: '🔞 R18写真', act: 'adult_portrait' },
-                            { label: '🎲 三连抽取', act: 'random3' },
-                            { label: '🎨 多类混合', act: 'catmix' },
-                            { label: '🌀 混沌生成', act: 'chaos' }
+                            { label: '写真模式', icon: icons.portrait, act: 'portrait' },
+                            { label: 'R18写真', icon: icons.adult, act: 'adult_portrait' },
+                            { label: '三连抽取', icon: icons.dice, act: 'random3' },
+                            { label: '多类混合', icon: icons.mix, act: 'catmix' },
+                            { label: '混沌生成', icon: icons.cyclone, act: 'chaos' }
                         );
                     } else {
-                        // Video Panel Modes (Simplified)
+                        // Video Panel Modes
                         opts.push(
-                            { label: '🎬 视频随机', act: 'video_random' },
-                            { label: '🔞 R18视频', act: 'video_r18' }
+                            { label: '视频随机', icon: icons.video, act: 'video_random' },
+                            { label: 'R18视频', icon: icons.adult, act: 'video_r18' }
                         );
                     }
 
                     opts.forEach(opt => {
                         const item = document.createElement('div');
                         item.className = 'gpm-ctx-item';
-                        item.textContent = opt.label;
+                        // ✨ Clean UI: Icon + Text
+                        item.innerHTML = `
+                            <div style="display:flex; align-items:center; gap:10px; pointer-events:none;">
+                                <span style="display:flex; align-items:center; opacity:0.8; color:#aab8c2;">${opt.icon}</span>
+                                <span style="font-weight:500;">${opt.label}</span>
+                            </div>
+                        `;
                         Object.assign(item.style, {
-                            padding: '8px 12px', cursor: 'pointer', color: '#e7e9ea', fontSize: '13px', borderRadius: '4px'
+                            padding: '10px 12px', cursor: 'pointer', color: '#e7e9ea', fontSize: '13px', borderRadius: '4px',
+                            transition: 'all 0.2s ease'
                         });
-                        item.onmouseenter = () => item.style.background = 'rgba(255,255,255,0.1)';
-                        item.onmouseleave = () => item.style.background = 'transparent';
+                        item.onmouseenter = () => {
+                            item.style.background = 'rgba(255,255,255,0.1)';
+                            const icon = item.querySelector('span'); // Icon span
+                            if(icon) icon.style.color = '#fff';
+                        };
+                        item.onmouseleave = () => {
+                            item.style.background = 'transparent';
+                            const icon = item.querySelector('span'); // Icon span
+                            if(icon) icon.style.color = '#aab8c2';
+                        };
                         item.onclick = () => {
                             console.log('[DEBUG] Menu item clicked:', opt.act);
                             
@@ -1546,7 +1583,7 @@
                                             
                                             <p style="margin-bottom: 10px;"><strong style="color: #1d9bf0;">💡 示例开头：</strong><br>
                                             <code style="background: rgba(255,255,255,0.05); padding: 8px; border-radius: 4px; display: block; margin-top: 8px; font-size: 12px;">
-                                            真实胶片直闪摄影，亚洲女性，小红书网红脸，表情冷漠而自信，姿态略带挑逗，身材真实吸引人
+                                            真实胶片摄影，人物肖像，光影层次丰富，表情自然，构图考究，色彩还原度高
                                             </code></p>
                                         </div>
                                         <div style="display: flex; gap: 10px; justify-content: flex-end;">
@@ -1689,7 +1726,7 @@
                                             
                                             <p style="margin-bottom: 10px;"><strong style="color: #e91e63;">💡 成人修饰示例：</strong><br>
                                             <code style="background: rgba(255,255,255,0.05); padding: 8px; border-radius: 4px; display: block; margin-top: 8px; font-size: 12px;">
-                                            姿态略带挑逗，身材真实吸引人，性感撩人，暴露度适中
+                                            姿态优雅，展现人物魅力，光影效果极佳，细节丰富
                                             </code></p>
                                         </div>
                                         <div style="display: flex; gap: 10px; justify-content: flex-end;">
@@ -1732,20 +1769,22 @@
                                     const storageService = new StorageService();
                                     const data = storageService.get();
                                     
-                                    // 🎯 Step 1: Find "写真模式标准描述" library
-                                    const portraitLib = data.libraries.find(lib => 
-                                        lib.name === '写真模式标准描述' || lib.name.includes('写真模式')
-                                    );
+                                    // 🎯 Step 1: Find "写真模式标准描述" library (Strict First)
+                                    let portraitLib = data.libraries.find(lib => lib.name === '写真模式标准描述');
+                                    if (!portraitLib) {
+                                        portraitLib = data.libraries.find(lib => lib.name.includes('写真模式'));
+                                    }
                                     
                                     if (!portraitLib || !portraitLib.prompts || portraitLib.prompts.length === 0) {
                                         alert('❌ 未找到"写真模式标准描述"库\n\n请先创建该库并添加标准写真开头');
                                         return;
                                     }
                                     
-                                    // 🎯 Step 2: Find "成人模式标准添加词" library
-                                    const adultLib = data.libraries.find(lib => 
-                                        lib.name === '成人模式标准添加词' || lib.name.includes('成人模式')
-                                    );
+                                    // 🎯 Step 2: Find "成人模式标准添加词" library (Strict First)
+                                    let adultLib = data.libraries.find(lib => lib.name === '成人模式标准添加词');
+                                    if (!adultLib) {
+                                        adultLib = data.libraries.find(lib => lib.name.includes('成人模式'));
+                                    }
                                     
                                     if (!adultLib || !adultLib.prompts || adultLib.prompts.length === 0) {
                                         alert('❌ 未找到"成人模式标准添加词"库\n\n请创建该库并添加成人写真修饰词');
@@ -1791,12 +1830,13 @@
                                     
                                     // Toast
                                     const toast = document.createElement('div');
-                                    toast.textContent = `🔞 R18写真：已生成（标准开头 + 成人修饰 + ${selected.length} 条随机）`;
+                                    toast.innerHTML = `🔞 R18写真：已生成<br><span style="font-size:12px;opacity:0.8;display:block;margin-top:2px;">源: ${portraitLib.name} + ${adultLib.name}</span>`;
                                     Object.assign(toast.style, {
                                         position: 'fixed', top: '20px', left: '50%', transform: 'translateX(-50%)',
                                         background: 'rgba(233, 30, 99, 0.9)', color: 'white',
                                         padding: '10px 20px', borderRadius: '8px', zIndex: '100000',
-                                        fontSize: '14px', fontWeight: '500', boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+                                        fontSize: '14px', fontWeight: '500', boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                                        textAlign: 'center'
                                     });
                                     document.body.appendChild(toast);
                                     setTimeout(() => toast.remove(), 3000);
@@ -1808,239 +1848,244 @@
                                 // 🎬 VIDEO RANDOM MODE
                                 console.log('[DEBUG] Video Random mode');
                                 
-                                // 🎯 First-time guide
-                                const hasSeenGuide = localStorage.getItem('gpm_video_random_guide_seen');
-                                if (!hasSeenGuide) {
-                                    const overlay = document.createElement('div');
-                                    overlay.style.cssText = `
-                                        position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-                                        background: rgba(0,0,0,0.7); backdrop-filter: blur(5px);
-                                        z-index: 999999; display: flex; align-items: center; justify-content: center;
-                                    `;
+                                    // 🎯 First-time guide for video random
+                                    const hasSeenGuide = localStorage.getItem('gpm_video_random_guide_seen');
+                                    if (!hasSeenGuide) {
+                                        const overlay = document.createElement('div');
+                                        overlay.style.cssText = `
+                                            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+                                            background: rgba(0,0,0,0.7); backdrop-filter: blur(5px);
+                                            z-index: 999999; display: flex; align-items: center; justify-content: center;
+                                        `;
+                                        
+                                        const guideBox = document.createElement('div');
+                                        guideBox.style.cssText = `
+                                            background: rgba(20, 20, 30, 0.98); border: 1px solid rgba(103, 58, 183, 0.3);
+                                            border-radius: 16px; padding: 30px; max-width: 600px;
+                                            box-shadow: 0 20px 60px rgba(103, 58, 183, 0.3);
+                                        `;
+                                        
+                                        guideBox.innerHTML = `
+                                            <div style="color: white; font-size: 24px; font-weight: 700; margin-bottom: 20px; text-align: center;">
+                                                🎬 视频随机模式使用说明
+                                            </div>
+                                            <div style="color: #ccc; font-size: 14px; line-height: 1.8; margin-bottom: 25px;">
+                                                <p style="margin-bottom: 15px;"><strong style="color: #673ab7;">✨ 视频随机模式是什么？</strong><br>
+                                                专为视频生成设计的精简模式，避免提示词过多混淆AI判断，每次只从专用库中抽取1条提示词</p>
+                                                
+                                                <p style="margin-bottom: 15px;"><strong style="color: #673ab7;">🎯 如何使用？</strong></p>
+                                                <ol style="padding-left: 20px; margin-bottom: 15px;">
+                                                    <li style="margin-bottom: 8px;">在右侧视频面板创建库 <code style="background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 3px;">随机视频专用</code></li>
+                                                    <li style="margin-bottom: 8px;">在该库中添加视频动作/氛围描述（每条独立完整）</li>
+                                                    <li style="margin-bottom: 8px;">点击视频随机，系统自动随机抽取1条填入</li>
+                                                </ol>
+                                                
+                                                <p style="margin-bottom: 10px;"><strong style="color: #673ab7;">💡 提示词示例：</strong><br>
+                                                <code style="background: rgba(255,255,255,0.05); padding: 8px; border-radius: 4px; display: block; margin-top: 8px; font-size: 12px;">
+                                                Nature: 微风吹拂过金色的麦田，麦浪翻滚，阳光洒下斑驳光影
+                                                </code></p>
+                                            </div>
+                                            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                                                <button id="gpm-video-guide-cancel" style="
+                                                    padding: 10px 24px; background: transparent;
+                                                    border: 1px solid rgba(255,255,255,0.3); border-radius: 8px;
+                                                    color: white; cursor: pointer; font-size: 14px;
+                                                ">取消</button>
+                                                <button id="gpm-video-guide-confirm" style="
+                                                    padding: 10px 24px; background: #673ab7;
+                                                    border: none; border-radius: 8px;
+                                                    color: white; cursor: pointer; font-size: 14px; font-weight: 600;
+                                                ">知道了，开始使用</button>
+                                            </div>
+                                        `;
+                                        
+                                        overlay.appendChild(guideBox);
+                                        document.body.appendChild(overlay);
+                                        
+                                        const closeGuide = (shouldProceed) => {
+                                            overlay.remove();
+                                            localStorage.setItem('gpm_video_random_guide_seen', 'true');
+                                            if (shouldProceed) {
+                                                executeVideoRandom();
+                                            }
+                                        };
+                                        
+                                        guideBox.querySelector('#gpm-video-guide-cancel').onclick = () => closeGuide(false);
+                                        guideBox.querySelector('#gpm-video-guide-confirm').onclick = () => closeGuide(true);
+                                        overlay.onclick = (e) => { if (e.target === overlay) closeGuide(false); };
+                                        
+                                        return;
+                                    }
                                     
-                                    const guideBox = document.createElement('div');
-                                    guideBox.style.cssText = `
-                                        background: rgba(20, 20, 30, 0.98); border: 1px solid rgba(103, 58, 183, 0.3);
-                                        border-radius: 16px; padding: 30px; max-width: 600px;
-                                        box-shadow: 0 20px 60px rgba(103, 58, 183, 0.3);
-                                    `;
-                                    
-                                    guideBox.innerHTML = `
-                                        <div style="color: white; font-size: 24px; font-weight: 700; margin-bottom: 20px; text-align: center;">
-                                            🎬 视频随机模式使用说明
-                                        </div>
-                                        <div style="color: #ccc; font-size: 14px; line-height: 1.8; margin-bottom: 25px;">
-                                            <p style="margin-bottom: 15px;"><strong style="color: #673ab7;">✨ 视频随机模式是什么？</strong><br>
-                                            专为视频生成设计的精简模式，避免提示词过多混淆AI判断，每次只从专用库中抽取1条提示词</p>
-                                            
-                                            <p style="margin-bottom: 15px;"><strong style="color: #673ab7;">🎯 如何使用？</strong></p>
-                                            <ol style="padding-left: 20px; margin-bottom: 15px;">
-                                                <li style="margin-bottom: 8px;">在右侧视频面板创建库 <code style="background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 3px;">视频提示词</code></li>
-                                                <li style="margin-bottom: 8px;">在该库中添加视频动作/氛围描述（每条独立完整）</li>
-                                                <li style="margin-bottom: 8px;">点击视频随机，系统自动随机抽取1条填入</li>
-                                            </ol>
-                                            
-                                            <p style="margin-bottom: 10px;"><strong style="color: #673ab7;">💡 提示词示例：</strong><br>
-                                            <code style="background: rgba(255,255,255,0.05); padding: 8px; border-radius: 4px; display: block; margin-top: 8px; font-size: 12px;">
-                                            Fabric: 细致黑色蕾丝边缘动作微微晃动，露出圆润头
-                                            </code></p>
-                                        </div>
-                                        <div style="display: flex; gap: 10px; justify-content: flex-end;">
-                                            <button id="gpm-video-guide-cancel" style="
-                                                padding: 10px 24px; background: transparent;
-                                                border: 1px solid rgba(255,255,255,0.3); border-radius: 8px;
-                                                color: white; cursor: pointer; font-size: 14px;
-                                            ">取消</button>
-                                            <button id="gpm-video-guide-confirm" style="
-                                                padding: 10px 24px; background: #673ab7;
-                                                border: none; border-radius: 8px;
-                                                color: white; cursor: pointer; font-size: 14px; font-weight: 600;
-                                            ">知道了，开始使用</button>
-                                        </div>
-                                    `;
-                                    
-                                    overlay.appendChild(guideBox);
-                                    document.body.appendChild(overlay);
-                                    
-                                    const closeGuide = (shouldProceed) => {
-                                        overlay.remove();
-                                        localStorage.setItem('gpm_video_random_guide_seen', 'true');
-                                        if (shouldProceed) {
-                                            executeVideoRandom();
+                                    const executeVideoRandom = () => {
+                                        // Get storage
+                                        const storageService = new StorageService();
+                                        const data = storageService.get();
+                                        
+                                        // 🎯 Find "随机视频专用" library (Strict First)
+                                        let videoLib = data.libraries.find(lib => lib.name === '随机视频专用');
+                                        if (!videoLib) {
+                                            videoLib = data.libraries.find(lib => lib.name.includes('随机视频专用'));
                                         }
+                                        
+                                        if (!videoLib || !videoLib.prompts || videoLib.prompts.length === 0) {
+                                            alert('❌ 未找到"随机视频专用"库，或该库为空\n\n请创建该库并添加视频提示词');
+                                            return;
+                                        }
+                                        
+                                        // 🎯 Random pick 1 from video library
+                                        const randomIndex = Math.floor(Math.random() * videoLib.prompts.length);
+                                        const videoPrompt = videoLib.prompts[randomIndex].content;
+                                        
+                                        // Insert
+                                        const inputManager = new InputManager();
+                                        inputManager.setValue(videoPrompt);
+                                        
+                                        // Toast
+                                        const toast = document.createElement('div');
+                                        toast.innerHTML = `🎬 视频随机：已生成<br><span style="font-size:12px;opacity:0.8;display:block;margin-top:2px;">源: ${videoLib.name}</span>`;
+                                        Object.assign(toast.style, {
+                                            position: 'fixed', top: '20px', left: '50%', transform: 'translateX(-50%)',
+                                            background: 'rgba(103, 58, 183, 0.9)', color: 'white',
+                                            padding: '10px 20px', borderRadius: '8px', zIndex: '100000',
+                                            fontSize: '14px', fontWeight: '500', boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                                            textAlign: 'center'
+                                        });
+                                        document.body.appendChild(toast);
+                                        setTimeout(() => toast.remove(), 3000);
                                     };
                                     
-                                    guideBox.querySelector('#gpm-video-guide-cancel').onclick = () => closeGuide(false);
-                                    guideBox.querySelector('#gpm-video-guide-confirm').onclick = () => closeGuide(true);
-                                    overlay.onclick = (e) => { if (e.target === overlay) closeGuide(false); };
+                                    executeVideoRandom();
                                     
-                                    return;
-                                }
-                                
-                                const executeVideoRandom = () => {
-                                    // Get storage
-                                    const storageService = new StorageService();
-                                    const data = storageService.get();
+                                } else if (opt.act === 'video_r18') {
+                                    // 🔞 VIDEO R18 MODE
+                                    console.log('[DEBUG] Video R18 mode');
                                     
-                                    // 🎯 Find "视频提示词" library
-                                    const videoLib = data.libraries.find(lib => 
-                                        lib.name === '视频提示词' || lib.name.includes('视频提示词')
-                                    );
-                                    
-                                    if (!videoLib || !videoLib.prompts || videoLib.prompts.length === 0) {
-                                        alert('❌ 未找到"视频提示词"库，或该库为空\n\n请创建该库并添加视频提示词');
+                                    // 🎯 First-time guide
+                                    const hasSeenR18Guide = localStorage.getItem('gpm_video_r18_guide_seen');
+                                    if (!hasSeenR18Guide) {
+                                        const overlay = document.createElement('div');
+                                        overlay.style.cssText = `
+                                            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+                                            background: rgba(0,0,0,0.7); backdrop-filter: blur(5px);
+                                            z-index: 999999; display: flex; align-items: center; justify-content: center;
+                                        `;
+                                        
+                                        const guideBox = document.createElement('div');
+                                        guideBox.style.cssText = `
+                                            background: rgba(20, 20, 30, 0.98); border: 1px solid rgba(233, 30, 99, 0.3);
+                                            border-radius: 16px; padding: 30px; max-width: 600px;
+                                            box-shadow: 0 20px 60px rgba(233, 30, 99, 0.3);
+                                        `;
+                                        
+                                        guideBox.innerHTML = `
+                                            <div style="color: white; font-size: 24px; font-weight: 700; margin-bottom: 20px; text-align: center;">
+                                                🔞 R18视频模式使用说明
+                                            </div>
+                                            <div style="color: #ccc; font-size: 14px; line-height: 1.8; margin-bottom: 25px;">
+                                                <p style="margin-bottom: 15px;"><strong style="color: #e91e63;">✨ R18视频模式是什么？</strong><br>
+                                                升级版视频生成，双重精准定位：基础视频提示词 + R18修饰语，只抽取2条避免混淆</p>
+                                                
+                                                <p style="margin-bottom: 15px;"><strong style="color: #e91e63;">🎯 如何使用？</strong></p>
+                                                <ol style="padding-left: 20px; margin-bottom: 15px;">
+                                                    <li style="margin-bottom: 8px;">创建库 <code style="background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 3px;">随机视频专用</code>（基础视频描述）</li>
+                                                    <li style="margin-bottom: 8px;">创建库 <code style="background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 3px;">R18视频添加提示词</code>（R18修饰）</li>
+                                                    <li style="margin-bottom: 8px;">点击R18视频，系统从两库各抽1条自动组合</li>
+                                                </ol>
+                                                
+                                                <p style="margin-bottom: 10px;"><strong style="color: #e91e63;">💡 R18修饰示例：</strong><br>
+                                                <code style="background: rgba(255,255,255,0.05); padding: 8px; border-radius: 4px; display: block; margin-top: 8px; font-size: 12px;">
+                                                Action: 优雅的华尔兹旋转，裙摆飞扬，动作流畅自然
+                                                </code></p>
+                                            </div>
+                                            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                                                <button id="gpm-video-r18-guide-cancel" style="
+                                                    padding: 10px 24px; background: transparent;
+                                                    border: 1px solid rgba(255,255,255,0.3); border-radius: 8px;
+                                                    color: white; cursor: pointer; font-size: 14px;
+                                                ">取消</button>
+                                                <button id="gpm-video-r18-guide-confirm" style="
+                                                    padding: 10px 24px; background: #e91e63;
+                                                    border: none; border-radius: 8px;
+                                                    color: white; cursor: pointer; font-size: 14px; font-weight: 600;
+                                                ">知道了，开始使用</button>
+                                            </div>
+                                        `;
+                                        
+                                        overlay.appendChild(guideBox);
+                                        document.body.appendChild(overlay);
+                                        
+                                        const closeGuide = (shouldProceed) => {
+                                            overlay.remove();
+                                            localStorage.setItem('gpm_video_r18_guide_seen', 'true');
+                                            if (shouldProceed) {
+                                                executeVideoR18();
+                                            }
+                                        };
+                                        
+                                        guideBox.querySelector('#gpm-video-r18-guide-cancel').onclick = () => closeGuide(false);
+                                        guideBox.querySelector('#gpm-video-r18-guide-confirm').onclick = () => closeGuide(true);
+                                        overlay.onclick = (e) => { if (e.target === overlay) closeGuide(false); };
+                                        
                                         return;
                                     }
                                     
-                                    // 🎯 Random pick 1 from video library
-                                    const randomIndex = Math.floor(Math.random() * videoLib.prompts.length);
-                                    const videoPrompt = videoLib.prompts[randomIndex].content;
-                                    
-                                    // Insert
-                                    const inputManager = new InputManager();
-                                    inputManager.setValue(videoPrompt);
-                                    
-                                    // Toast
-                                    const toast = document.createElement('div');
-                                    toast.textContent = `🎬 视频随机：已从"视频提示词"库中随机生成`;
-                                    Object.assign(toast.style, {
-                                        position: 'fixed', top: '20px', left: '50%', transform: 'translateX(-50%)',
-                                        background: 'rgba(103, 58, 183, 0.9)', color: 'white',
-                                        padding: '10px 20px', borderRadius: '8px', zIndex: '100000',
-                                        fontSize: '14px', fontWeight: '500', boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
-                                    });
-                                    document.body.appendChild(toast);
-                                    setTimeout(() => toast.remove(), 3000);
-                                };
-                                
-                                executeVideoRandom();
-                                
-                            } else if (opt.act === 'video_r18') {
-                                // 🔞 VIDEO R18 MODE
-                                console.log('[DEBUG] Video R18 mode');
-                                
-                                // 🎯 First-time guide
-                                const hasSeenR18Guide = localStorage.getItem('gpm_video_r18_guide_seen');
-                                if (!hasSeenR18Guide) {
-                                    const overlay = document.createElement('div');
-                                    overlay.style.cssText = `
-                                        position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-                                        background: rgba(0,0,0,0.7); backdrop-filter: blur(5px);
-                                        z-index: 999999; display: flex; align-items: center; justify-content: center;
-                                    `;
-                                    
-                                    const guideBox = document.createElement('div');
-                                    guideBox.style.cssText = `
-                                        background: rgba(20, 20, 30, 0.98); border: 1px solid rgba(233, 30, 99, 0.3);
-                                        border-radius: 16px; padding: 30px; max-width: 600px;
-                                        box-shadow: 0 20px 60px rgba(233, 30, 99, 0.3);
-                                    `;
-                                    
-                                    guideBox.innerHTML = `
-                                        <div style="color: white; font-size: 24px; font-weight: 700; margin-bottom: 20px; text-align: center;">
-                                            🔞 R18视频模式使用说明
-                                        </div>
-                                        <div style="color: #ccc; font-size: 14px; line-height: 1.8; margin-bottom: 25px;">
-                                            <p style="margin-bottom: 15px;"><strong style="color: #e91e63;">✨ R18视频模式是什么？</strong><br>
-                                            升级版视频生成，双重精准定位：基础视频提示词 + R18修饰语，只抽取2条避免混淆</p>
-                                            
-                                            <p style="margin-bottom: 15px;"><strong style="color: #e91e63;">🎯 如何使用？</strong></p>
-                                            <ol style="padding-left: 20px; margin-bottom: 15px;">
-                                                <li style="margin-bottom: 8px;">创建库 <code style="background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 3px;">视频提示词</code>（基础视频描述）</li>
-                                                <li style="margin-bottom: 8px;">创建库 <code style="background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 3px;">R18视频添加提示词</code>（R18修饰）</li>
-                                                <li style="margin-bottom: 8px;">点击R18视频，系统从两库各抽1条自动组合</li>
-                                            </ol>
-                                            
-                                            <p style="margin-bottom: 10px;"><strong style="color: #e91e63;">💡 R18修饰示例：</strong><br>
-                                            <code style="background: rgba(255,255,255,0.05); padding: 8px; border-radius: 4px; display: block; margin-top: 8px; font-size: 12px;">
-                                            Pose: 身体侧躺并前倾下，腰线收紧呈弧线展开，布料微掀
-                                            </code></p>
-                                        </div>
-                                        <div style="display: flex; gap: 10px; justify-content: flex-end;">
-                                            <button id="gpm-video-r18-guide-cancel" style="
-                                                padding: 10px 24px; background: transparent;
-                                                border: 1px solid rgba(255,255,255,0.3); border-radius: 8px;
-                                                color: white; cursor: pointer; font-size: 14px;
-                                            ">取消</button>
-                                            <button id="gpm-video-r18-guide-confirm" style="
-                                                padding: 10px 24px; background: #e91e63;
-                                                border: none; border-radius: 8px;
-                                                color: white; cursor: pointer; font-size: 14px; font-weight: 600;
-                                            ">知道了，开始使用</button>
-                                        </div>
-                                    `;
-                                    
-                                    overlay.appendChild(guideBox);
-                                    document.body.appendChild(overlay);
-                                    
-                                    const closeGuide = (shouldProceed) => {
-                                        overlay.remove();
-                                        localStorage.setItem('gpm_video_r18_guide_seen', 'true');
-                                        if (shouldProceed) {
-                                            executeVideoR18();
+                                    const executeVideoR18 = () => {
+                                        // Get storage
+                                        const storageService = new StorageService();
+                                        const data = storageService.get();
+                                        
+                                        // 🎯 Step 1: Find "随机视频专用" library (Strict First)
+                                        let videoLib = data.libraries.find(lib => lib.name === '随机视频专用');
+                                        if (!videoLib) {
+                                            videoLib = data.libraries.find(lib => lib.name.includes('随机视频专用'));
                                         }
+                                        
+                                        if (!videoLib || !videoLib.prompts || videoLib.prompts.length === 0) {
+                                            alert('❌ 未找到"随机视频专用"库\n\n请先创建该库并添加视频提示词');
+                                            return;
+                                        }
+                                        
+                                        // 🎯 Step 2: Find "R18视频添加提示词" library (Strict First)
+                                        let r18VideoLib = data.libraries.find(lib => lib.name === 'R18视频添加提示词');
+                                        if (!r18VideoLib) {
+                                            r18VideoLib = data.libraries.find(lib => lib.name.includes('R18视频'));
+                                        }
+                                        
+                                        if (!r18VideoLib || !r18VideoLib.prompts || r18VideoLib.prompts.length === 0) {
+                                            alert('❌ 未找到"R18视频添加提示词"库\n\n请创建该库并添加R18视频修饰词');
+                                            return;
+                                        }
+                                        
+                                        // 🎯 Step 3: Random pick 1 from each library
+                                        const videoIndex = Math.floor(Math.random() * videoLib.prompts.length);
+                                        const videoPrompt = videoLib.prompts[videoIndex].content;
+                                        
+                                        const r18Index = Math.floor(Math.random() * r18VideoLib.prompts.length);
+                                        const r18Modifier = r18VideoLib.prompts[r18Index].content;
+                                        
+                                        // 🎯 Step 4: Combine
+                                        const finalPrompt = `${videoPrompt}, ${r18Modifier}`;
+                                        
+                                        // Insert
+                                        const inputManager = new InputManager();
+                                        inputManager.setValue(finalPrompt);
+                                        
+                                        // Toast
+                                        const toast = document.createElement('div');
+                                        toast.innerHTML = `🔞 R18视频：已生成<br><span style="font-size:12px;opacity:0.8;display:block;margin-top:2px;">源: ${videoLib.name} + ${r18VideoLib.name}</span>`;
+                                        Object.assign(toast.style, {
+                                            position: 'fixed', top: '20px', left: '50%', transform: 'translateX(-50%)',
+                                            background: 'rgba(233, 30, 99, 0.9)', color: 'white',
+                                            padding: '10px 20px', borderRadius: '8px', zIndex: '100000',
+                                            fontSize: '14px', fontWeight: '500', boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                                            textAlign: 'center'
+                                        });
+                                        document.body.appendChild(toast);
+                                        setTimeout(() => toast.remove(), 3000);
                                     };
                                     
-                                    guideBox.querySelector('#gpm-video-r18-guide-cancel').onclick = () => closeGuide(false);
-                                    guideBox.querySelector('#gpm-video-r18-guide-confirm').onclick = () => closeGuide(true);
-                                    overlay.onclick = (e) => { if (e.target === overlay) closeGuide(false); };
-                                    
-                                    return;
-                                }
-                                
-                                const executeVideoR18 = () => {
-                                    // Get storage
-                                    const storageService = new StorageService();
-                                    const data = storageService.get();
-                                    
-                                    // 🎯 Step 1: Find "视频提示词" library
-                                    const videoLib = data.libraries.find(lib => 
-                                        lib.name === '视频提示词' || lib.name.includes('视频提示词')
-                                    );
-                                    
-                                    if (!videoLib || !videoLib.prompts || videoLib.prompts.length === 0) {
-                                        alert('❌ 未找到"视频提示词"库\n\n请先创建该库并添加视频提示词');
-                                        return;
-                                    }
-                                    
-                                    // 🎯 Step 2: Find "R18视频添加提示词" library
-                                    const r18VideoLib = data.libraries.find(lib => 
-                                        lib.name === 'R18视频添加提示词' || lib.name.includes('R18视频')
-                                    );
-                                    
-                                    if (!r18VideoLib || !r18VideoLib.prompts || r18VideoLib.prompts.length === 0) {
-                                        alert('❌ 未找到"R18视频添加提示词"库\n\n请创建该库并添加R18视频修饰词');
-                                        return;
-                                    }
-                                    
-                                    // 🎯 Step 3: Random pick 1 from each library
-                                    const videoIndex = Math.floor(Math.random() * videoLib.prompts.length);
-                                    const videoPrompt = videoLib.prompts[videoIndex].content;
-                                    
-                                    const r18Index = Math.floor(Math.random() * r18VideoLib.prompts.length);
-                                    const r18Modifier = r18VideoLib.prompts[r18Index].content;
-                                    
-                                    // 🎯 Step 4: Combine
-                                    const finalPrompt = `${videoPrompt}, ${r18Modifier}`;
-                                    
-                                    // Insert
-                                    const inputManager = new InputManager();
-                                    inputManager.setValue(finalPrompt);
-                                    
-                                    // Toast
-                                    const toast = document.createElement('div');
-                                    toast.textContent = `🔞 R18视频：已生成（视频提示词 + R18修饰）`;
-                                    Object.assign(toast.style, {
-                                        position: 'fixed', top: '20px', left: '50%', transform: 'translateX(-50%)',
-                                        background: 'rgba(233, 30, 99, 0.9)', color: 'white',
-                                        padding: '10px 20px', borderRadius: '8px', zIndex: '100000',
-                                        fontSize: '14px', fontWeight: '500', boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
-                                    });
-                                    document.body.appendChild(toast);
-                                    setTimeout(() => toast.remove(), 3000);
-                                };
-                                
-                                executeVideoR18();
+                                    executeVideoR18();
                                 
                             } else {
                                 // 🎯 Check for first-time guide for other modes
@@ -5319,8 +5364,8 @@ Breast squeeze, pressing breasts together"></textarea>
 4. 每条之间空一行
 
 示例：
-【M字开腿】
-Legs: 双腿大幅弯曲呈M字向两侧压到极限，膝盖几乎贴床
+【优雅站姿】
+Legs: 身体自然站立，双臂自然下垂，目光直视前方，展现自信气质
 
 【柔和侧光】
 Lighting: 光源从左侧45度角照射，在面部形成柔和的明暗过渡
