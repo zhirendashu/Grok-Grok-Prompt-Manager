@@ -5684,6 +5684,7 @@ Breast squeeze, pressing breasts together"></textarea>
                     const libIndex = data.libraries.findIndex(l => l.id === lib.id);
                     if (libIndex !== -1) {
                         data.libraries[libIndex].pinned = lib.pinned;
+                        console.log(`[GPM] 置顶状态已更新: ${lib.name} -> ${lib.pinned ? '已置顶' : '未置顶'}`);
                         this.storage.save(data);
                         this.loadLibraryData();
                     }
