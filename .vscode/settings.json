@@ -1,0 +1,179 @@
+{
+  // ========================================
+  // Grok Prompt Manager - VS Code 配置
+  // 针对摄影师 + 油猴脚本开发优化
+  // ========================================
+
+  // 编辑器基础设置
+  "editor.fontSize": 14,
+  "editor.fontFamily": "'Cascadia Code', 'Fira Code', Consolas, monospace",
+  "editor.fontLigatures": true,
+  "editor.tabSize": 4,
+  "editor.insertSpaces": true,
+  "editor.wordWrap": "on",
+  "editor.lineNumbers": "on",
+  "editor.minimap.enabled": true,
+  "editor.minimap.maxColumn": 120,
+  "editor.renderWhitespace": "boundary",
+  "editor.bracketPairColorization.enabled": true,
+  "editor.guides.bracketPairs": true,
+
+  // 代码格式化
+  "editor.formatOnSave": false, // 油猴脚本不建议自动格式化
+  "editor.formatOnPaste": false,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "never" // 避免破坏油猴脚本结构
+  },
+
+  // 文件关联
+  "files.associations": {
+    "*.user.js": "javascript", // 油猴脚本识别为 JS
+    "*.wxml": "html",          // 微信小程序模板
+    "*.wxss": "css",           // 微信小程序样式
+    "*.wxs": "javascript"      // 微信小程序脚本
+  },
+
+  // 文件排除（提升性能）
+  "files.exclude": {
+    "**/.git": true,
+    "**/node_modules": true,
+    "**/.DS_Store": true,
+    "**/Thumbs.db": true,
+    "**/*.log": true
+  },
+
+  // 搜索排除
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/bower_components": true,
+    "**/*.code-search": true,
+    "**/miniprogram_npm": true // 小程序依赖
+  },
+
+  // Git 配置
+  "git.autofetch": true,
+  "git.confirmSync": false,
+  "git.enableSmartCommit": true,
+  "git.postCommitCommand": "none",
+
+  // JavaScript 配置
+  "javascript.updateImportsOnFileMove.enabled": "always",
+  "javascript.suggest.autoImports": true,
+  "javascript.validate.enable": true,
+
+  // 终端配置（Windows PowerShell）
+  "terminal.integrated.defaultProfile.windows": "PowerShell",
+  "terminal.integrated.fontSize": 13,
+  "terminal.integrated.cursorStyle": "line",
+
+  // 图像预览（摄影师友好）
+  "gutterpreview.imagePreviewMaxHeight": 100,
+  "gutterpreview.showimagepreviewongutter": true,
+
+  // 颜色主题（推荐暗色主题，保护视力）
+  "workbench.colorTheme": "Default Dark Modern",
+  "workbench.iconTheme": "vs-seti",
+
+  // 自动保存
+  "files.autoSave": "afterDelay",
+  "files.autoSaveDelay": 2000,
+
+  // 代码片段建议
+  "editor.snippetSuggestions": "top",
+  "editor.suggest.snippetsPreventQuickSuggestions": false,
+
+  // 油猴脚本专用配置
+  "[javascript]": {
+    "editor.defaultFormatter": "vscode.typescript-language-features",
+    "editor.tabSize": 4,
+    "editor.detectIndentation": false
+  },
+
+  // CSS 配置（UI 美化）
+  "[css]": {
+    "editor.defaultFormatter": "vscode.css-language-features",
+    "editor.suggest.insertMode": "replace"
+  },
+
+  // JSON 配置
+  "[json]": {
+    "editor.defaultFormatter": "vscode.json-language-features",
+    "editor.tabSize": 2
+  },
+
+  // Markdown 配置（文档编写）
+  "[markdown]": {
+    "editor.wordWrap": "on",
+    "editor.quickSuggestions": {
+      "comments": "off",
+      "strings": "off",
+      "other": "off"
+    }
+  },
+
+  // 小程序开发配置
+  "minapp-vscode.disableAutoConfig": true,
+  "minapp-vscode.wxmlFormatter": "prettier",
+
+  // ESLint 配置（可选，油猴脚本通常不需要）
+  "eslint.enable": false,
+
+  // 性能优化
+  "files.watcherExclude": {
+    "**/.git/objects/**": true,
+    "**/.git/subtree-cache/**": true,
+    "**/node_modules/**": true,
+    "**/miniprogram_npm/**": true
+  },
+
+  // 调试配置
+  "debug.console.fontSize": 13,
+  "debug.internalConsoleOptions": "neverOpen",
+
+  // 扩展推荐（自动提示安装）
+  "extensions.ignoreRecommendations": false,
+
+  // 自定义任务快捷键提示
+  "workbench.tips.enabled": true,
+
+  // 面包屑导航
+  "breadcrumbs.enabled": true,
+
+  // 代码折叠
+  "editor.foldingStrategy": "indentation",
+  "editor.showFoldingControls": "always",
+
+  // 注释高亮（重要注释醒目显示）
+  "editor.tokenColorCustomizations": {
+    "comments": "#6A9955" // 绿色注释
+  },
+
+  // 文件编码
+  "files.encoding": "utf8",
+  "files.eol": "\r\n", // Windows 换行符
+
+  // 保存时自动删除行尾空格
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+
+  // 项目专属配置
+  "emmet.includeLanguages": {
+    "javascript": "javascriptreact",
+    "wxml": "html"
+  },
+
+  // 智能感知
+  "editor.quickSuggestions": {
+    "other": true,
+    "comments": false,
+    "strings": true
+  },
+
+  // 滚动优化
+  "editor.smoothScrolling": true,
+  "workbench.list.smoothScrolling": true,
+
+  // 光标优化
+  "editor.cursorBlinking": "smooth",
+  "editor.cursorSmoothCaretAnimation": "on"
+}

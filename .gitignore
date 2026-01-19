@@ -1,4 +1,26 @@
 .backup_temp/
 .idea/
-.vscode/
-*.log
+
+# Private / Development Folders (User Request)
+02_测试版/
+03_分支版/
+04_独立模块/
+05_历史备份/
+07_数据素材/
+backup/
+temp_grok_loop/
+examples/
+library/
+raw_data/
+tests/
+tools/
+docs/
+Grok prompt/
+grok-imagine-loop/
+grok-imagine-loop-latest/
+自动重试/
+自动高清/
+视频相关/
+
+# User Brain / Artifacts
+.gemini/

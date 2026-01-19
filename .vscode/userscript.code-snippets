@@ -1,0 +1,225 @@
+// ========================================
+// Grok Prompt Manager - 代码片段
+// 针对油猴脚本开发优化
+// ========================================
+
+{
+  // 油猴脚本头部模板
+  "Userscript Header": {
+    "prefix": "gpm-header",
+    "body": [
+      "// ==UserScript==",
+      "// @name         ${1:脚本名称}",
+      "// @namespace    https://link3.cc/zhirendashu",
+      "// @version      ${2:1.0.0}",
+      "// @description  ${3:脚本描述}",
+      "// @author       植人大树",
+      "// @match        ${4:https://example.com/*}",
+      "// @grant        GM_setValue",
+      "// @grant        GM_getValue",
+      "// @grant        GM_xmlhttpRequest",
+      "// @license      CC BY-NC-SA 4.0",
+      "// ==/UserScript==",
+      "",
+      "(function() {",
+      "    'use strict';",
+      "    ",
+      "    $0",
+      "})();"
+    ],
+    "description": "油猴脚本头部模板（含署名）"
+  },
+
+  // 组件基类
+  "Component Class": {
+    "prefix": "gpm-component",
+    "body": [
+      "class ${1:ComponentName} {",
+      "    constructor(styleManager) {",
+      "        this.styleManager = styleManager;",
+      "        this.shadow = null;",
+      "    }",
+      "    ",
+      "    render(html) {",
+      "        if (!this.shadow) {",
+      "            const host = document.createElement('div');",
+      "            this.shadow = host.attachShadow({ mode: 'open' });",
+      "            document.body.appendChild(host);",
+      "        }",
+      "        this.shadow.innerHTML = html;",
+      "    }",
+      "    ",
+      "    setup() {",
+      "        $0",
+      "    }",
+      "}"
+    ],
+    "description": "创建组件基类"
+  },
+
+  // 存储服务
+  "Storage Service": {
+    "prefix": "gpm-storage",
+    "body": [
+      "class StorageService {",
+      "    constructor(key = 'GPM_DATA') {",
+      "        this.key = key;",
+      "        this.data = this.load();",
+      "    }",
+      "    ",
+      "    load() {",
+      "        try {",
+      "            const raw = GM_getValue(this.key, null);",
+      "            return raw ? JSON.parse(raw) : this.getDefaultData();",
+      "        } catch (e) {",
+      "            console.error('[Storage] 加载失败:', e);",
+      "            return this.getDefaultData();",
+      "        }",
+      "    }",
+      "    ",
+      "    save(data) {",
+      "        try {",
+      "            this.data = data || this.data;",
+      "            GM_setValue(this.key, JSON.stringify(this.data));",
+      "            return true;",
+      "        } catch (e) {",
+      "            console.error('[Storage] 保存失败:', e);",
+      "            return false;",
+      "        }",
+      "    }",
+      "    ",
+      "    getDefaultData() {",
+      "        return { $0 };",
+      "    }",
+      "}"
+    ],
+    "description": "创建存储服务类"
+  },
+
+  // 中文注释块
+  "Comment Block": {
+    "prefix": "gpm-comment",
+    "body": [
+      "// ========================================",
+      "// ${1:功能描述}",
+      "// ========================================",
+      "$0"
+    ],
+    "description": "中文注释块"
+  },
+
+  // Try-Catch 错误处理
+  "Try-Catch Block": {
+    "prefix": "gpm-try",
+    "body": [
+      "try {",
+      "    $0",
+      "} catch (error) {",
+      "    console.error('[${1:模块名}] 错误:', error);",
+      "    ${2:// 错误处理逻辑}",
+      "}"
+    ],
+    "description": "Try-Catch 错误处理块"
+  },
+
+  // 事件监听器（带清理）
+  "Event Listener with Cleanup": {
+    "prefix": "gpm-event",
+    "body": [
+      "// 绑定事件",
+      "const ${1:handler} = (e) => {",
+      "    $0",
+      "};",
+      "${2:element}.addEventListener('${3:click}', ${1:handler});",
+      "",
+      "// 清理函数",
+      "const cleanup = () => {",
+      "    ${2:element}.removeEventListener('${3:click}', ${1:handler});",
+      "};"
+    ],
+    "description": "事件监听器（含清理逻辑）"
+  },
+
+  // 图像处理函数
+  "Image Processing": {
+    "prefix": "gpm-image",
+    "body": [
+      "function process${1:Image}(imgElement) {",
+      "    const canvas = document.createElement('canvas');",
+      "    const ctx = canvas.getContext('2d');",
+      "    ",
+      "    canvas.width = imgElement.width;",
+      "    canvas.height = imgElement.height;",
+      "    ctx.drawImage(imgElement, 0, 0);",
+      "    ",
+      "    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);",
+      "    ",
+      "    // 图像处理逻辑",
+      "    $0",
+      "    ",
+      "    ctx.putImageData(imageData, 0, 0);",
+      "    return canvas.toDataURL('image/png');",
+      "}"
+    ],
+    "description": "图像处理函数模板"
+  },
+
+  // API 请求封装
+  "GM XHR Request": {
+    "prefix": "gpm-xhr",
+    "body": [
+      "GM_xmlhttpRequest({",
+      "    method: '${1:GET}',",
+      "    url: '${2:https://api.example.com}',",
+      "    headers: {",
+      "        'Content-Type': 'application/json'",
+      "    },",
+      "    onload: (response) => {",
+      "        try {",
+      "            const data = JSON.parse(response.responseText);",
+      "            $0",
+      "        } catch (e) {",
+      "            console.error('[API] 解析失败:', e);",
+      "        }",
+      "    },",
+      "    onerror: (error) => {",
+      "        console.error('[API] 请求失败:', error);",
+      "    }",
+      "});"
+    ],
+    "description": "GM_xmlhttpRequest 封装"
+  },
+
+  // 防抖函数
+  "Debounce Function": {
+    "prefix": "gpm-debounce",
+    "body": [
+      "function debounce(func, wait = 300) {",
+      "    let timeout;",
+      "    return function(...args) {",
+      "        clearTimeout(timeout);",
+      "        timeout = setTimeout(() => func.apply(this, args), wait);",
+      "    };",
+      "}"
+    ],
+    "description": "防抖函数"
+  },
+
+  // 节流函数
+  "Throttle Function": {
+    "prefix": "gpm-throttle",
+    "body": [
+      "function throttle(func, limit = 300) {",
+      "    let inThrottle;",
+      "    return function(...args) {",
+      "        if (!inThrottle) {",
+      "            func.apply(this, args);",
+      "            inThrottle = true;",
+      "            setTimeout(() => inThrottle = false, limit);",
+      "        }",
+      "    };",
+      "}"
+    ],
+    "description": "节流函数"
+  }
+}
