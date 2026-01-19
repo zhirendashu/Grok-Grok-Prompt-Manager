@@ -9015,9 +9015,22 @@ dayjs.extend(dayjs_plugin_utc);
     // ========== 初始化 ==========
     function init() {
         if (window.__twx_inited_v200__) return;
+
+        // 🔒 严格域名检查：绝对禁止在 Grok.com 运行
+        const host = window.location.hostname;
+        const isX = host.includes('x.com') || host.includes('twitter.com');
+        if (!isX) {
+            console.log('[X-Lens] Not on X/Twitter. Module disabled.');
+            return;
+        }
+
         window.__twx_inited_v200__ = true;
 
         createPanel();
+        // 确保面板默认隐藏
+        const p = $('#twx-panel');
+        if (p) p.style.display = 'none';
+
         initKeyboardShortcuts();
         initContextMenu();
 
