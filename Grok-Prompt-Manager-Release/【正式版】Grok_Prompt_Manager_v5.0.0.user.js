@@ -6850,8 +6850,8 @@ Breast squeeze, pressing breasts together"></textarea>
 4. 每条之间空一行
 
 示例：
-【M字开腿】
-Legs: 双腿大幅弯曲呈M字向两侧压到极限，膝盖几乎贴床
+【赛博朋克】
+Environment: 霓虹闪烁的未来都市，高耸入云的摩天大楼，飞行汽车穿梭其中
 
 【柔和侧光】
 Lighting: 光源从左侧45度角照射，在面部形成柔和的明暗过渡
