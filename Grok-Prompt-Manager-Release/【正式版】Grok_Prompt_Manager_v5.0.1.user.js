@@ -632,21 +632,23 @@
                     }
                 }
 
-                // 1.5 ✨ RECOVERY: Check LocalStorage Mirror (Fixes new script instance data loss)
-                try {
-                    const mirror = localStorage.getItem('GPM_V2_MIRROR');
-                    if (mirror) {
-                        console.log('[GPM] ♻️ Found LocalStorage mirror! Restoring data...');
-                        const restored = JSON.parse(mirror);
-                        if (this.validateData(restored)) {
-                            GM_setValue(DB_KEY, mirror); // Sync to new GM instance
-                            return restored;
-                        } else {
-                            console.warn('[GPM] Mirror 数据损坏，跳过恢复');
+                // 1.5 ✨ RECOVERY: Check LocalStorage Mirror (Only if GM data is missing)
+                if (!v2Data) {
+                    try {
+                        const mirror = localStorage.getItem('GPM_V2_MIRROR');
+                        if (mirror) {
+                            console.log('[GPM] ♻️ GM data missing. Found LocalStorage mirror! Restoring data...');
+                            const restored = JSON.parse(mirror);
+                            if (this.validateData(restored)) {
+                                GM_setValue(DB_KEY, mirror); // Sync to new GM instance
+                                return restored;
+                            } else {
+                                console.warn('[GPM] Mirror 数据损坏，跳过恢复');
+                            }
                         }
+                    } catch (e) {
+                        console.error('[GPM] Failed to restore from mirror:', e);
                     }
-                } catch (e) {
-                    console.error('[GPM] Failed to restore from mirror:', e);
                 }
 
                 // 2. Fallback: Try loading v0.19 data and migrate
@@ -2951,28 +2953,54 @@
             // Create Independent Floating Panel (Similar to Auto-Retry Panel)
             let libSelectorPanel = this.shadow.querySelector('.gpm-lib-selector-panel');
 
+            // 🎯 CRITICAL FIX: Separate storage keys for left (text) and right (video) panels
+            const posKey = isLeft ? 'gpm_libPanelPos_left' : 'gpm_libPanelPos_right';
+
             if (!libSelectorPanel) {
                 // Create Panel
                 libSelectorPanel = document.createElement('div');
                 libSelectorPanel.className = 'gpm-lib-selector-panel';
 
                 // 尝试恢复保存的位置和大小
-                const savedPos = localStorage.getItem('gpm_libPanelPos');
+                let savedPos = localStorage.getItem(posKey);
+
+                // 🗑️ REMOVE MIGRATION: Old data is dirty (mixed left/right), so we drop it.
+                // This forces a fresh start with correct defaults for everyone.
+
                 let positionStyle = '';
                 let sizeStyle = 'width: 320px; height: 500px;'; // Default size
+
+                // 🌟 Smart Default Position
+                const defaultLeft = isLeft ? 'left: 360px;' : 'right: 360px;';
+                const defaultTop = 'top: 100px;';
 
                 if (savedPos) {
                     try {
                         const pos = JSON.parse(savedPos);
+
+                        // 🛡️ SANITY CHECK: Prevent dirty data from messing up positions
+                        // If left panel is too far right (> 50% screen width), reset it.
+                        // If right panel is too far left (< 50% screen width), reset it.
+                        const screenW = window.innerWidth;
+                        if (isLeft && pos.left > screenW * 0.5) {
+                            throw new Error('Left panel drifted to right side');
+                        }
+                        if (!isLeft && pos.left < screenW * 0.4) { // Allow some overlap but not too much
+                             throw new Error('Right panel drifted to left side');
+                        }
+
+                        // Apply saved valid position
                         positionStyle = `left: ${pos.left}px; top: ${pos.top}px;`;
                         if (pos.width && pos.height) {
                             sizeStyle = `width: ${pos.width}px; height: ${pos.height}px;`;
                         }
                     } catch (e) {
-                        positionStyle = `top: 120px; ${isLeft ? 'left: 400px;' : 'right: 400px;'}`;
+                        // Fallback to default if corrupted or weird position
+                        console.warn('[GPM] Resetting panel position:', e.message);
+                        positionStyle = `${defaultTop} ${defaultLeft}`;
                     }
                 } else {
-                    positionStyle = `top: 120px; ${isLeft ? 'left: 400px;' : 'right: 400px;'}`;
+                    positionStyle = `${defaultTop} ${defaultLeft}`;
                 }
 
                 libSelectorPanel.style.cssText = `
@@ -3028,8 +3056,7 @@
                     const newTop = initialTop + dy;
                     libSelectorPanel.style.left = newLeft + 'px';
                     libSelectorPanel.style.top = newTop + 'px';
-                    libSelectorPanel.style.right = 'auto';
-                    console.log('[GPM] 库面板移动中:', newLeft, newTop);
+                    libSelectorPanel.style.right = 'auto'; // ensure right doesn't conflict
                 };
 
                 const onUp = () => {
@@ -3039,7 +3066,7 @@
 
                     // 保存位置
                     const rect = libSelectorPanel.getBoundingClientRect();
-                    localStorage.setItem('gpm_libPanelPos', JSON.stringify({
+                    localStorage.setItem(posKey, JSON.stringify({
                         left: rect.left,
                         top: rect.top,
                         width: rect.width,
@@ -3149,7 +3176,7 @@
 
                     // Save Size & Position
                     const rect = libSelectorPanel.getBoundingClientRect();
-                    localStorage.setItem('gpm_libPanelPos', JSON.stringify({
+                    localStorage.setItem(posKey, JSON.stringify({
                         left: rect.left,
                         top: rect.top,
                         width: rect.width,
@@ -3312,7 +3339,7 @@
                                 opacity: ${lib.pinned ? '1' : '0.5'};
                                 transition: all 0.2s;
                              ">📌</button>
-                             <button class="rename-btn" title="重命名" style="
+                            <button class="rename-btn" title="重命名" style="
                                 background: transparent;
                                 border: none;
                                 cursor: pointer;
@@ -3321,17 +3348,7 @@
                                 color: rgba(255,255,255,0.3);
                                 opacity: 0.5;
                                 transition: all 0.2s;
-                             ">✏️</button>
-                             <button class="delete-btn" title="删除库" style="
-                                background: transparent;
-                                border: none;
-                                cursor: pointer;
-                                padding: 4px;
-                                font-size: 13px;
-                                color: rgba(255,100,100,0.5);
-                                opacity: 0.5;
-                                transition: all 0.2s;
-                             ">🗑️</button>
+                            ">✏️</button>
                         </div>
                     `;
 
@@ -3531,26 +3548,6 @@
                         if (newName && newName.trim() && newName !== lib.name) {
                             if (self.onRenameLib) {
                                 self.onRenameLib(lib.id, newName.trim());
-                            }
-                        }
-                    };
-
-                    // Delete Button Logic
-                    const deleteBtn = item.querySelector('.delete-btn');
-                    deleteBtn.onmouseenter = () => {
-                        deleteBtn.style.opacity = '1';
-                        deleteBtn.style.color = 'rgba(255,100,100,0.9)';
-                    };
-                    deleteBtn.onmouseleave = () => {
-                        deleteBtn.style.opacity = '0.5';
-                        deleteBtn.style.color = 'rgba(255,100,100,0.5)';
-                    };
-                    deleteBtn.onclick = (e) => {
-                        e.stopPropagation();
-                        if (confirm(`确定要删除库 "${lib.name}" 吗？\n\n此操作不可撤销！`)) {
-                            hideLibPanel();
-                            if (self.onDeleteLib) {
-                                self.onDeleteLib(lib.id);
                             }
                         }
                     };
@@ -6040,7 +6037,16 @@ Breast squeeze, pressing breasts together"></textarea>
                     (action, prompt) => this.handlePromptAction(action, prompt, 'text'),
                     (src, tgt) => this.handleReorder(src, tgt, 'text'),
                     null, // onAiAssist
-                    () => this.renameCurrentLibrary('text'),
+                    (libId, newName) => { // 🔧 FIX: 接收参数并保存
+                        const data = this.storage.get();
+                        const lib = data.libraries.find(l => l.id === libId);
+                        if (lib) {
+                            lib.name = newName;
+                            this.storage.save(data);
+                            this.loadLibraryData(); // 重新加载以更新 UI
+                            this.showToast(`库已重命名为 "${newName}"`);
+                        }
+                    },
                     () => this.addNewCategory('text'),
                     () => this.importToCategory('text'),
                     () => this.exportCategory('text'),
@@ -6076,7 +6082,16 @@ Breast squeeze, pressing breasts together"></textarea>
                     (action, prompt) => this.handlePromptAction(action, prompt, 'video'),
                     (src, tgt) => this.handleReorder(src, tgt, 'video'),
                     () => this.autoRetryManager.togglePanel(this.rightPanel.shadow.querySelector('.gpm-panel')),
-                    () => this.renameCurrentLibrary('video'),
+                    (libId, newName) => { // 🔧 FIX: 接收参数并保存
+                        const data = this.storage.get();
+                        const lib = data.libraries.find(l => l.id === libId);
+                        if (lib) {
+                            lib.name = newName;
+                            this.storage.save(data);
+                            this.loadLibraryData(); // 重新加载以更新 UI
+                            this.showToast(`库已重命名为 "${newName}"`);
+                        }
+                    },
                     () => this.addNewCategory('video'),
                     () => this.importToCategory('video'),
                     () => this.exportCategory('video'),
@@ -8001,6 +8016,15 @@ dayjs.extend(dayjs_plugin_utc);
         panel.appendChild(body);
         document.body.appendChild(panel);
 
+        // 默认最小化面板（只显示标题栏）
+        body.style.display = 'none';
+        const togglePanelBtn = panel.querySelector('#twx-toggle-panel');
+        if (togglePanelBtn) {
+            togglePanelBtn.textContent = '▲';
+            togglePanelBtn.style.background = 'rgba(29,161,242,0.3)';
+        }
+        STATE.panelCollapsed = true;
+
         // 载入持久化位置
         try {
             const saved = JSON.parse(localStorage.getItem('twx_panel_pos') || 'null');
@@ -9049,9 +9073,11 @@ dayjs.extend(dayjs_plugin_utc);
         window.__twx_inited_v200__ = true;
 
         createPanel();
-        // 确保面板默认隐藏
-        const p = $('#twx-panel');
-        if (p) p.style.display = 'none';
+
+        // 🎯 创建 X-Lens 专属浮动按钮 (确保在 DOM 完全加载后)
+        setTimeout(() => {
+            createXLensToggleButton();
+        }, 100);
 
         initKeyboardShortcuts();
         initContextMenu();
@@ -9100,6 +9126,77 @@ dayjs.extend(dayjs_plugin_utc);
                 toggleHDMedia(true);
             }
         }, 2000);
+    }
+
+    // 🎯 创建 X-Lens 专属浮动按钮
+    function createXLensToggleButton() {
+        const btn = document.createElement('div');
+        btn.id = 'xlens-toggle-btn';
+        btn.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 999999;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            user-select: none;
+            // background: #000 url("${APP_ICON_BASE64}") no-repeat center center;
+            // background-size: cover;
+            background: #000;
+            border: 2px solid rgba(255,255,255,0.1);
+        `;
+
+        // ✨ 使用纯 SVG 绘制 "镜头/光圈" 图标 (X-Lens Identity)
+        // 解决图片加载失败导致的黑球问题，且符合摄影师审美
+        btn.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width: 32px; height: 32px;">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="14.31" y1="8" x2="20.05" y2="17.94"></line>
+                <line x1="9.69" y1="8" x2="21.17" y2="8"></line>
+                <line x1="7.38" y1="12" x2="13.12" y2="2.06"></line>
+                <line x1="9.69" y1="16" x2="3.95" y2="6.06"></line>
+                <line x1="14.31" y1="16" x2="2.83" y2="16"></line>
+                <line x1="16.62" y1="12" x2="10.88" y2="21.94"></line>
+            </svg>
+        `;
+
+        // 悬停效果
+        btn.onmouseenter = () => {
+            btn.style.transform = 'scale(1.1)';
+            btn.style.boxShadow = '0 6px 20px rgba(29, 161, 242, 0.6)';
+            btn.style.borderColor = '#1D9BF0';
+        };
+        btn.onmouseleave = () => {
+            btn.style.transform = 'scale(1)';
+            btn.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.5)';
+            btn.style.borderColor = 'rgba(255,255,255,0.1)';
+        };
+
+        // 点击切换面板
+        btn.onclick = () => {
+            const panel = $('#twx-panel');
+            if (panel) {
+                panel.style.display = (panel.style.display === 'none' ? 'block' : 'none');
+            }
+        };
+
+        // 确保 body 已加载后再添加按钮
+        const appendButton = () => {
+            if (document.body) {
+                document.body.appendChild(btn);
+                console.log('[X-Lens] Toggle button created');
+            } else {
+                setTimeout(appendButton, 100);
+            }
+        };
+        appendButton();
     }
 
     // ========== 启动脚本 ==========
