@@ -1,9 +1,10 @@
 // ==UserScript==
-// @name         植人大树 X 整合版 (Grok + X-Lens v5.0)
+// @name         Grok AGI 全能助手 (集成 X-Lens)
+// @name:zh-CN   Grok AGI 全能助手 | 植人大树出品
 // @namespace    http://tampermonkey.net/
 // @version      5.0.0
-// @description  Grok 提示词管理 + X-Lens 沉浸式助手 | 极致高清 + 影院模式 + 自动化管理 (集成版)
-// @author       植人大树avity
+// @description  Grok 提示词母舰 + X-Lens 社交战斗机 | 一站式 AGI 生产力套件
+// @author       植人大树
 // @match        https://grok.com/*
 // @match        https://x.com/*
 // @match        https://twitter.com/*
