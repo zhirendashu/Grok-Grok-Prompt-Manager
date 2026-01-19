@@ -2,7 +2,7 @@
 // @name         Grok AGI 全能助手 (集成 X-Lens)
 // @name:zh-CN   Grok AGI 全能助手 | 植人大树出品
 // @namespace    http://tampermonkey.net/
-// @version      5.0.0
+// @version      5.0.1
 // @description  Grok 提示词母舰 + X-Lens 社交战斗机 | 一站式 AGI 生产力套件
 // @author       植人大树
 // @match        https://grok.com/*
@@ -31,6 +31,11 @@
 
 /**
  * 📜 Changelog
+ *
+ * v5.0.1 (2026-01-19):
+ * - **紧急修复**: 严格限制 Grok 提示词面板仅在 grok.com 初始化
+ *   - 解决：在 X.com 访问时，Grok 面板不再自动加载/展开
+ *   - 效果：X.com 仅加载 X-Lens 模块，Grok.com 仅加载提示词面板，实现完美隔离
  *
  * v5.0.0 (2026-01-19):
  * - **新增**: 集成 X-Lens (原推特女秘书) 核心模块，打造 "Grok + X" 双核终极版
@@ -6949,13 +6954,23 @@ Lighting: 光源从左侧45度角照射，在面部形成柔和的明暗过渡
     };
 
     // --- BOOTSTRAP ---
-    // 1. Start Inspector Immediately (like standalone script)
-    new GrokPromptInspector().init();
+    // --- BOOTSTRAP ---
+    // 🔒 Domain Check: Only run GPM on grok.com
+    const hostname = window.location.hostname;
+    const isGrok = hostname.includes('grok.com');
 
-    // 2. Start Manager App on Load
-    window.addEventListener('load', () => {
-        window.grokPromptManagerApp = new App();
-    });
+    if (isGrok) {
+        console.log('[GPM] Grok.com detected. Initializing Manager App...');
+        // 1. Start Inspector Immediately (like standalone script)
+        new GrokPromptInspector().init();
+
+        // 2. Start Manager App on Load
+        window.addEventListener('load', () => {
+            window.grokPromptManagerApp = new App();
+        });
+    } else {
+        console.log('[GPM] Not on Grok.com. Manager App skipped. (X-Lens will handle X.com)');
+    }
 })();
 
 // ======================================================================================

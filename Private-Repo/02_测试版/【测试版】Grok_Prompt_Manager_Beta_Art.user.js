@@ -6942,11 +6942,20 @@ Lighting: 光源从左侧45度角照射，在面部形成柔和的明暗过渡
     };
 
     // --- BOOTSTRAP ---
-    // 1. Start Inspector Immediately (like standalone script)
-    new GrokPromptInspector().init();
+    // --- BOOTSTRAP ---
+    // 🔒 Domain Check: Only run GPM on grok.com
+    const hostname = window.location.hostname;
+    const isGrok = hostname.includes('grok.com');
 
-    // 2. Start Manager App on Load
-    window.addEventListener('load', () => {
-        window.grokPromptManagerApp = new App();
-    });
+    if (isGrok) {
+        // 1. Start Inspector Immediately (like standalone script)
+        new GrokPromptInspector().init();
+
+        // 2. Start Manager App on Load
+        window.addEventListener('load', () => {
+            window.grokPromptManagerApp = new App();
+        });
+    } else {
+        console.log('[GPM Beta] Not on Grok.com. Manager App skipped.');
+    }
 })();
