@@ -1,14 +1,14 @@
-// ==UserScript==
-// @name         Twitter/X 女秘书 v2.0 终极版
-// @name:en      Twitter/X Assistant v2.0 Ultimate Edition
-// @namespace    https://github.com/zhirendatree/twitter-assistant
+﻿// ==UserScript==
+// @name         Twitter/X Lens - 沉浸式助手
+// @name:en      Twitter/X Lens - Immersive Assistant
+// @namespace    https://github.com/zhirendatree/x-lens
 // @version      2.0.0
-// @description  🍑 Twitter/X 智能助手终极版 | 自动化操作 + 高清媒体下载 + 界面优化 | 由 @OnlyPeachFWD 设计制作
-// @description:en 🍑 Ultimate Twitter/X Assistant | Automation + HD Media Download + UI Enhancement | Crafted by Claude AI
+// @description  📷 专为摄影师打造的 X 体验 | 极致高清 + 影院模式 + 自动化管理 | 由 @OnlyPeachFWD 设计
+// @description:en 📷 Ultimate experience for Photographers | HD Media + Cinema Mode + Automation
 // @author       @OnlyPeachFWD
 // @license      MIT
-// @homepage     https://github.com/zhirendatree/twitter-assistant
-// @supportURL   https://github.com/zhirendatree/twitter-assistant/issues
+// @homepage     https://github.com/zhirendatree/x-lens
+// @supportURL   https://github.com/zhirendatree/x-lens/issues
 // @match        https://twitter.com/*
 // @match        https://x.com/*
 // @run-at       document-idle
@@ -28,7 +28,7 @@
 // @compatible   chrome
 // @compatible   firefox
 // @compatible   edge
-// @icon         data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMzIiIGZpbGw9IiMxREExRjIiLz4KPHN2ZyB4PSIxNiIgeT0iMTYiIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJ3aGl0ZSI+CjxwYXRoIGQ9Ik0xOC4yNDQgMi4yNWgzLjMwOGwtNy4yMjcgOC4yNiA4LjUwMiAxMS4yNEgxNi4xN2wtNS4yMTQtNi44MTdMNC45OSAyMS43NUgxLjY4bDcuNzMtOC44MzVMMS4yNTQgMi4yNWg4LjA4bDQuNzEzIDYuMjMxem0tMS4xNjEgMTcuNTJoMS44MzNMNy4wODQgNC4xMjZINS4xMTd6Ii8+Cjwvc3ZnPgo8L3N2Zz4K
+// @icon         data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMURBMUYyIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+CiAgPGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTAiIC8+CiAgPGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMyIgLz4KICA8cGF0aCBkPSJNNSAxMmgyIiAvPgogIDxwYXRoIGQ9Ik0xNyAxMmgyIiAvPgogIDxwYXRoIGQ9Ik0xMiA1djIiIC8+CiAgPHBhdGggZD0iTTEyIDE3djIiIC8+Cjwvc3ZnPg==
 // ==/UserScript==
 
 dayjs.extend(dayjs_plugin_utc);
@@ -676,32 +676,7 @@ dayjs.extend(dayjs_plugin_utc);
     };
 
 
-    const LOG = (msg, type='info') => {
-        const prefix = `[🍑 女秘书 v2.0] `;
-        const colorMap = {
-            info: '#1DA1F2',
-            success: '#17BF63',
-            error: '#FF3B30',
-            warning: '#F7931E'
-        };
-        console.log(`%c${prefix}${msg}`, `color: ${colorMap[type] || colorMap.info}; font-weight: bold;`);
-
-        const box = document.querySelector('#twx-log');
-        if (box && !STATE.logCollapsed) {
-            const time = new Date().toLocaleTimeString();
-            const color = colorMap[type] || colorMap.info;
-            box.innerHTML += `<div style="color: ${color}; font-size: 11px; margin: 2px 0;">${time} ${msg}</div>`;
-            box.scrollTop = box.scrollHeight;
-
-            // 限制日志数量，防止内存溢出
-            const logs = box.children;
-            if (logs.length > 50) {
-                for (let i = 0; i < 10; i++) {
-                    logs[0].remove();
-                }
-            }
-        }
-    };
+    // LOG 函数已移动到后文定义（支持去重和计数）
 
     const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
     const sleep = (ms) => new Promise(r => setTimeout(r, ms));
@@ -744,165 +719,9 @@ dayjs.extend(dayjs_plugin_utc);
             return false;
         }
     }
-    function initVideoStyles() {
-        const videoStyle = document.createElement('style');
-        videoStyle.textContent = `
-            .video-filter-hidden {
-                visibility: hidden !important;
-                position: absolute !important;
-                left: -9999px !important;
-            }
-            .video-filter-toggle {
-                position: fixed; top: 10px; right: 10px; z-index: 9999;
-                background: #1d9bf0; color: white; border: none;
-                padding: 8px 12px; border-radius: 20px; cursor: pointer;
-                font-size: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-            }
-            .video-filter-toggle:hover {
-                background: #1a8cd8;
-            }
-            .video-filter-stats {
-                position: fixed; top: 50px; right: 10px; z-index: 9998;
-                background: rgba(0,0,0,0.8); color: white; padding: 8px 12px;
-                border-radius: 8px; font-size: 11px; display: none;
-            }
-        `;
-        document.head.appendChild(videoStyle);
-    }
+    // ========== 视频模式功能 (已合并至面板控制) ==========
+    // 旧代码已移除，使用后文定义的统一逻辑
 
-    // ========== 视频模式全局变量 ==========
-    let videoCache = new Map();
-    let isVideoModeEnabled = false;
-    let videoToggleButton = null;
-    let videoStatsElement = null;
-
-    // ========== 视频检测功能 ==========
-    function hasVideo(tweet) {
-        const tweetId = tweet.getAttribute('data-testid') || getHash(tweet);
-        if (videoCache.has(tweetId)) {
-            return videoCache.get(tweetId);
-        }
-
-        try {
-            // 1. 检查视频标签
-            const videoElements = tweet.querySelectorAll('video');
-            if (videoElements.length > 0) {
-                videoCache.set(tweetId, true);
-                return true;
-            }
-
-            // 2. 检查视频播放按钮和容器
-            const videoSelectors = [
-                '[data-testid="videoPlayer"]',
-                '[data-testid="playButton"]',
-                '[data-testid="videoComponent"]',
-                '[aria-label*="播放"]',
-                '[aria-label*="Play"]',
-                '[aria-label*="video"]',
-                '[aria-label*="Video"]',
-                '.r-1p0dtai', // Twitter视频容器类
-                '.css-1dbjc4n[data-testid="tweet"] video',
-                'div[role="button"][aria-label*="Play"]'
-            ];
-
-            for (const selector of videoSelectors) {
-                const elements = tweet.querySelectorAll(selector);
-                if (elements.length > 0) {
-                    videoCache.set(tweetId, true);
-                    return true;
-                }
-            }
-
-            // 3. 检查文本内容是否包含视频相关关键词
-            const tweetText = tweet.textContent || '';
-            const videoKeywords = ['视频', 'video', '播放', 'play'];
-            const hasVideoKeyword = videoKeywords.some(keyword =>
-                tweetText.toLowerCase().includes(keyword.toLowerCase())
-            );
-
-            // 4. 检查是否有媒体容器
-            const mediaContainers = tweet.querySelectorAll(
-                '[data-testid="tweetPhoto"], [data-testid="card.layoutLarge.media"], ' +
-                '.css-1dbjc4n[style*="padding-bottom"]'
-            );
-
-            if (mediaContainers.length > 0 && hasVideoKeyword) {
-                videoCache.set(tweetId, true);
-                return true;
-            }
-
-            videoCache.set(tweetId, false);
-            return false;
-        } catch (error) {
-            console.warn('检查视频内容时出错:', error);
-            videoCache.set(tweetId, false);
-            return false;
-        }
-    }
-
-    function filterVideoTweets() {
-        const tweets = document.querySelectorAll('article[data-testid="tweet"]');
-        let hiddenCount = 0;
-        let shownCount = 0;
-
-        tweets.forEach(tweet => {
-            if (hasVideo(tweet)) {
-                tweet.style.display = '';
-                tweet.classList.remove('video-filter-hidden');
-                shownCount++;
-            } else {
-                tweet.style.display = 'none';
-                tweet.classList.add('video-filter-hidden');
-                hiddenCount++;
-            }
-        });
-
-        if (videoStatsElement) {
-            videoStatsElement.textContent = `显示: ${shownCount} | 隐藏: ${hiddenCount}`;
-        }
-    }
-
-    function toggleVideoMode() {
-        isVideoModeEnabled = !isVideoModeEnabled;
-        if (isVideoModeEnabled) {
-            videoToggleButton.textContent = '🎥 视频模式: 开';
-            videoStatsElement.style.display = 'block';
-            filterVideoTweets();
-        } else {
-            videoToggleButton.textContent = '🎥 视频模式: 关';
-            videoStatsElement.style.display = 'none';
-            showAllVideoTweets();
-        }
-    }
-
-    function showAllVideoTweets() {
-        const hiddenTweets = document.querySelectorAll('.video-filter-hidden');
-        hiddenTweets.forEach(tweet => {
-            tweet.style.display = '';
-            tweet.classList.remove('video-filter-hidden');
-        });
-    }
-
-    // ========== 视频模式初始化 ==========
-    function initVideoMode() {
-        try {
-            // 创建控制按钮
-            videoToggleButton = document.createElement('button');
-            videoToggleButton.className = 'video-filter-toggle';
-            videoToggleButton.textContent = '🎥 视频模式: 关';
-            videoToggleButton.onclick = toggleVideoMode;
-            document.body.appendChild(videoToggleButton);
-
-            videoStatsElement = document.createElement('div');
-            videoStatsElement.className = 'video-filter-stats';
-            videoStatsElement.id = 'video-filter-stats';
-            document.body.appendChild(videoStatsElement);
-
-            LOG('✅ 视频模式模块已初始化', 'success');
-        } catch (error) {
-            LOG('❌ 视频模式初始化失败: ' + error.message, 'error');
-        }
-    }
 
     // ========== 文本识别 ==========
     const TXT = {
@@ -916,13 +735,19 @@ dayjs.extend(dayjs_plugin_utc);
     };
 
     function findLikeButtons() {
-        const list = qsa(`[data-testid="${TXT.likeTestId}"]:not([data-testid="${TXT.unlikeTestId}"])`);
+        // 使用更精确的 data-testid 选择器
+        const list = qsa('[data-testid="like"]');
         return list.filter(btn => {
             const hash = 'like-' + getHash(btn);
             if (STATE.processed.has(hash)) return false;
+
             const aria = btn.getAttribute('aria-label') || '';
-            const liked = /已喜欢|取消喜欢|Liked|Unlike/.test(aria);
-            if (!liked) { STATE.processed.add(hash); return true; }
+            const liked = /已喜欢|取消喜欢|Liked|Unlike/.test(aria) || btn.getAttribute('data-testid') === 'unlike';
+
+            if (!liked) {
+                STATE.processed.add(hash);
+                return true;
+            }
             return false;
         });
     }
@@ -932,24 +757,37 @@ dayjs.extend(dayjs_plugin_utc);
     function isFollowingText(text) { return TXT.following.some(t => text.includes(t)); }
 
     function findFollowButtons() {
-        const all = qsa('div[role="button"], button');
+        // 优先查找明确的关注按钮，同时也扫描通用按钮作为后备
+        const specificButtons = qsa('[data-testid$="-follow"]');
+        const genericButtons = qsa('div[role="button"], button');
+        // 合并并去重
+        const all = [...new Set([...specificButtons, ...genericButtons])];
+
         const res = [];
         for (const btn of all) {
             const t = textOf(btn);
             if (!t) continue;
+
             const hash = 'follow-' + getHash(btn);
             if (STATE.processed.has(hash)) continue;
+
             if (isFollowText(t) && !isFollowingText(t)) {
                 const aria = btn.getAttribute('aria-label') || '';
-                const already = /正在关注|已关注|正在關注|已關注|Following/.test(aria) || btn.querySelector('[data-testid="userFollowing"]');
-                if (!already) { STATE.processed.add(hash); res.push(btn); }
+                const already = /正在关注|已关注|正在關注|已關注|Following/.test(aria) ||
+                              btn.querySelector('[data-testid="userFollowing"]') ||
+                              btn.getAttribute('data-testid') === 'userFollowing';
+
+                if (!already) {
+                    STATE.processed.add(hash);
+                    res.push(btn);
+                }
             }
         }
         return res;
     }
 
     function findRetweetButtons() {
-        const list = qsa(`[data-testid="${TXT.retweetTestId}"]:not([data-testid="${TXT.unretweetTestId}"])`);
+        const list = qsa('[data-testid="retweet"]');
         return list.filter(btn => {
             const hash = 'rt-' + getHash(btn);
             if (STATE.processed.has(hash)) return false;
@@ -1057,107 +895,164 @@ dayjs.extend(dayjs_plugin_utc);
 
     // ========== UI 面板 ==========
     function createPanel() {
-        if (document.querySelector('#twx-panel')) return;
         const panel = document.createElement('div');
         panel.id = 'twx-panel';
         panel.style.cssText = `
-            position:fixed; left:16px; top:16px; width:min(360px, 28vw);
-            background:rgba(0,0,0,0.95); color:#ffffff; padding:16px;
-            border-radius:16px; font-size:13px; z-index:999999;
-            box-shadow:0 8px 32px rgba(0,0,0,0.8); border:1px solid rgba(255,255,255,0.1);
-            backdrop-filter:blur(20px); transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 320px;
+            background: rgba(21, 32, 43, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255,255,255,0.05) inset;
+            z-index: 9999;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: white;
+            transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
         `;
 
-        // 面板头部：标题 + 控制按钮
+        // 面板头部
         const header = document.createElement('div');
-        header.style.cssText = `display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; cursor: move;`;
+        header.style.cssText = `
+            padding: 16px 20px;
+            background: rgba(255, 255, 255, 0.03);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            cursor: move;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+        `;
         header.innerHTML = `
-            <h2 style="margin: 0; color: #1DA1F2; font-size: 18px; display: flex; align-items: center;">
-                🍑 女秘书
-                <span style="font-size: 12px; margin-left: 8px; opacity: 0.7;">v2.0</span>
-                <span style="font-size: 10px; margin-left: 4px; color:#1DA1F2; font-weight: bold;">AI</span>
-            </h2>
-            <div>
-                <button id="twx-toggle-panel" style="padding:6px 8px; background:rgba(29,161,242,0.2); border:none; border-radius:8px; color:#1DA1F2; cursor:pointer; font-size:12px; font-weight:500;">▼</button>
+            <div style="display:flex;align-items:center;gap:10px;">
+                <div style="width:24px;height:24px;color:#1DA1F2;">
+                    <!-- Lens Icon -->
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <circle cx="12" cy="12" r="3" />
+                        <path d="M5 12h2" />
+                        <path d="M17 12h2" />
+                        <path d="M12 5v2" />
+                        <path d="M12 17v2" />
+                    </svg>
+                </div>
+                <div>
+                    <div style="font-weight:700;font-size:14px;letter-spacing:0.5px;">X-Lens v2.0</div>
+                    <div style="font-size:10px;opacity:0.6;margin-top:2px;">Pro Vision</div>
+                </div>
             </div>
+            <button id="twx-toggle-panel" style="
+                width: 28px; height: 28px; border-radius: 50%;
+                background: rgba(255,255,255,0.1); border: none;
+                color: white; cursor: pointer; display: flex; align-items: center; justify-content: center;
+                transition: background 0.2s;
+            ">▼</button>
         `;
         panel.appendChild(header);
 
         // 面板主体内容
         const body = document.createElement('div');
         body.id = 'twx-panel-body';
+        body.style.cssText = `padding: 20px;`;
+
+        // 生成开关样式
+        const checkboxStyle = `
+            appearance: none; width: 40px; height: 22px; background: rgba(255,255,255,0.1);
+            border-radius: 12px; position: relative; cursor: pointer; transition: background 0.3s;
+            outline: none;
+        `;
+        const sliderStyle = `
+            content: ''; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px;
+            background: white; border-radius: 50%; transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        `;
+
+        const styleTag = document.createElement('style');
+        styleTag.textContent = `
+            .twx-toggle input:checked { background: #1D9BF0 !important; }
+            .twx-toggle input:checked::after { transform: translateX(18px); }
+            .twx-toggle input::after { ${sliderStyle} }
+            .twx-btn-hover:hover { filter: brightness(1.2); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+            .twx-btn-active:active { transform: translateY(0); filter: brightness(0.9); }
+        `;
+        panel.appendChild(styleTag);
+
+        const createSwitch = (id, label) => `
+            <label class="twx-toggle" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;cursor:pointer;">
+                <span style="font-size:13px;font-weight:500;color:#E7E9EA;">${label}</span>
+                <input type="checkbox" id="${id}" style="${checkboxStyle}">
+            </label>
+        `;
+
         body.innerHTML = `
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
-                <label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:500;cursor:pointer;color:#ffffff;">
-                    <input type="checkbox" id="twx-like" style="accent-color:#1DA1F2;transform:scale(1.1);"> 自动点赞
-                </label>
-                <label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:500;cursor:pointer;color:#ffffff;">
-                    <input type="checkbox" id="twx-follow" style="accent-color:#1DA1F2;transform:scale(1.1);"> 智能关注
-                </label>
-                <label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:500;cursor:pointer;color:#ffffff;">
-                    <input type="checkbox" id="twx-retweet" style="accent-color:#1DA1F2;transform:scale(1.1);"> 自动转发
-                </label>
-                <label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:500;cursor:pointer;color:#ffffff;">
-                    <input type="checkbox" id="twx-originals-only" style="accent-color:#1DA1F2;transform:scale(1.1);"> 只看原创
-                </label>
-                <label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:500;cursor:pointer;color:#ffffff;">
-                    <input type="checkbox" id="twx-hide-spaces" style="accent-color:#1DA1F2;transform:scale(1.1);"> 清爽界面
-                </label>
-                <label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:500;cursor:pointer;color:#ffffff;">
-                    <input type="checkbox" id="twx-hd-media" checked style="accent-color:#1DA1F2;transform:scale(1.1);"> 高清媒体
-                </label>
-                <label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:500;cursor:pointer;color:#ffffff;">
-                    <input type="checkbox" id="twx-video-mode" style="accent-color:#1DA1F2;transform:scale(1.1);"> 视频模式
-                </label>
-                <label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:500;cursor:pointer;color:#E1E8ED;">
-                    <input type="checkbox" id="twx-media-download" style="accent-color:#1DA1F2;transform:scale(1.1);"> 媒体下载
-                </label>
+            <!-- 自动化开关组 -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:x 16px; margin-bottom: 20px;">
+                ${createSwitch('twx-like', '自动点赞')}
+                ${createSwitch('twx-follow', '智能关注')}
+                ${createSwitch('twx-retweet', '自动转发')}
+                ${createSwitch('twx-originals-only', '只看原创')}
+                ${createSwitch('twx-hide-spaces', '清爽模式')}
+                ${createSwitch('twx-video-mode', '视频模式')}
+                ${createSwitch('twx-hd-media', '高清媒体')}
+                ${createSwitch('twx-media-download', '媒体下载')}
             </div>
 
-            <div style="background:rgba(29,161,242,0.1);border-radius:12px;padding:12px;margin-bottom:16px;border:1px solid rgba(29,161,242,0.2);">
-                <div style="font-weight:600;margin-bottom:8px;color:#1DA1F2;font-size:12px;">频率设置</div>
-                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:11px;">
-                    <div style="text-align:center;">
-                        <div style="color:#8B98A5;margin-bottom:4px;">点赞</div>
-                        <input type="number" id="limit-like" value="${STATE.rate.like}" style="width:100%;padding:4px;border:1px solid #38444D;border-radius:6px;text-align:center;font-size:11px;background:#000;color:#fff;">
-                    </div>
-                    <div style="text-align:center;">
-                        <div style="color:#8B98A5;margin-bottom:4px;">关注</div>
-                        <input type="number" id="limit-follow" value="${STATE.rate.follow}" style="width:100%;padding:4px;border:1px solid #38444D;border-radius:6px;text-align:center;font-size:11px;background:#000;color:#fff;">
-                    </div>
-                    <div style="text-align:center;">
-                        <div style="color:#8B98A5;margin-bottom:4px;">转发</div>
-                        <input type="number" id="limit-retweet" value="${STATE.rate.retweet}" style="width:100%;padding:4px;border:1px solid #38444D;border-radius:6px;text-align:center;font-size:11px;background:#000;color:#fff;">
-                    </div>
+            <!-- 频率设置卡片 -->
+            <div style="background:rgba(0,0,0,0.2); border-radius:16px; padding:16px; margin-bottom: 20px; border:1px solid rgba(255,255,255,0.05);">
+                <div style="font-weight:600;margin-bottom:12px;color:#8B98A5;font-size:11px;text-transform:uppercase;letter-spacing:1px;">频率控制 (次/小时)</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+                    ${['like','follow','retweet'].map(k => `
+                        <div style="position:relative;">
+                            <input type="number" id="limit-${k}" value="${STATE.rate[k]}"
+                                style="width:100%;padding:8px 0;background:transparent;border:none;border-bottom:2px solid #333;
+                                color:white;text-align:center;font-weight:bold;font-size:16px;font-family:monospace;">
+                            <div style="text-align:center;font-size:10px;color:#666;margin-top:4px;">${k === 'like' ? '点赞' : k === 'follow' ? '关注' : '转发'}</div>
+                        </div>
+                    `).join('')}
                 </div>
-                <button id="twx-save" style="width:100%;margin-top:8px;padding:6px;background:#1DA1F2;border:none;border-radius:8px;color:#fff;cursor:pointer;font-size:11px;font-weight:500;">保存设置</button>
-            </div>
-
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
-                <button id="twx-run" style="padding:10px;background:#1DA1F2;border:none;border-radius:10px;color:#fff;cursor:pointer;font-size:12px;font-weight:600;">全套运行一次</button>
-                <button id="twx-toggle" style="padding:10px;background:#1DA1F2;border:none;border-radius:10px;color:#fff;cursor:pointer;font-size:12px;font-weight:600;">启动</button>
-            </div>
-
-            <div style="display:flex;gap:8px;margin-bottom:16px;">
-                <button id="twx-adv-search" style="flex:1;padding:8px;background:rgba(29,161,242,0.2);border:none;border-radius:8px;color:#1DA1F2;cursor:pointer;font-size:11px;font-weight:500;">高级搜索模式</button>
-                <button id="twx-clear" style="padding:8px 12px;background:rgba(139,152,165,0.2);border:none;border-radius:8px;color:#8B98A5;cursor:pointer;font-size:11px;font-weight:500;">清空</button>
-            </div>
-
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-                <div style="font-size:11px;color:#8B98A5;">
-                    状态: <span id="twx-status" style="color:#f91880;font-weight:500;">未启动</span> |
-                    记录: <span id="twx-processed" style="font-weight:500;color:#ffffff;">0</span>
-                </div>
-                <button id="twx-toggle-log" style="background:none;border:none;color:#8B98A5;cursor:pointer;font-size:11px;padding:2px 6px;border-radius:4px;">
-                    <span id="log-toggle-text">▼</span> 日志
+                <button id="twx-save" class="twx-btn-hover twx-btn-active"
+                    style="width:100%;margin-top:16px;padding:10px;background:rgba(29,155,240,0.15);color:#1D9BF0;
+                    border:none;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.2s;">
+                    保存速率参数
                 </button>
             </div>
 
-            <div id="twx-log" style="max-height:120px;overflow:auto;background:rgba(255,255,255,0.05);padding:8px;border-radius:8px;font-size:10px;border:1px solid rgba(255,255,255,0.1);display:block;"></div>
+            <!-- 主控按钮 -->
+            <div style="display:grid;grid-template-columns:1fr 1.5fr; gap:12px; margin-bottom: 20px;">
+                <button id="twx-run" class="twx-btn-hover twx-btn-active"
+                    style="padding:12px;background:#333;color:white;border:none;border-radius:12px;font-weight:600;cursor:pointer;">
+                    单次运行
+                </button>
+                <button id="twx-toggle" class="twx-btn-hover twx-btn-active"
+                    style="padding:12px;background:linear-gradient(135deg, #1D9BF0, #1A8CD8);color:white;border:none;border-radius:12px;font-weight:600;cursor:pointer;box-shadow:0 4px 12px rgba(29,155,240,0.3);">
+                    启动自动化
+                </button>
+            </div>
+
+            <!-- 底部行 -->
+            <div style="display:flex;gap:10px;margin-bottom:16px;">
+                <button id="twx-adv-search" class="twx-btn-hover" style="flex:1;padding:8px;background:rgba(255,255,255,0.1);color:#EFF3F4;border:none;border-radius:8px;font-size:12px;cursor:pointer;">高级搜索</button>
+                <button id="twx-clear" style="padding:8px 12px;background:transparent;border:1px solid rgba(255,255,255,0.2);color:#8B98A5;border-radius:8px;cursor:pointer;font-size:12px;">清空</button>
+            </div>
+
+            <!-- 状态栏 -->
+            <div style="display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid rgba(255,255,255,0.1);">
+                <div style="font-size:11px;color:#8899A6;">
+                    <span id="twx-status" style="color:#F91880;font-weight:bold;margin-right:8px;">● 休眠中</span>
+                    处理: <span id="twx-processed" style="color:white;font-family:monospace;">0</span>
+                </div>
+                <button id="twx-toggle-log" style="background:none;border:none;color:#1D9BF0;font-size:11px;cursor:pointer;font-weight:600;">展开日志</button>
+            </div>
+
+            <div id="twx-log" style="max-height:150px;overflow-y:auto;background:#000;margin-top:12px;padding:10px;border-radius:8px;font-family:monospace;font-size:10px;color:#ccc;border:1px solid #333;display:none;"></div>
         `;
         panel.appendChild(body);
-
         document.body.appendChild(panel);
 
         // 载入持久化位置
@@ -1214,9 +1109,13 @@ dayjs.extend(dayjs_plugin_utc);
         $('#twx-hide-spaces').onchange = e => { STATE.hideSpaces = e.target.checked; toggleHideSpaces(STATE.hideSpaces); };
         $('#twx-hd-media').onchange = e => { STATE.hdMedia = e.target.checked; toggleHDMedia(STATE.hdMedia); };
         $('#twx-video-mode').onchange = e => { STATE.videoMode = e.target.checked; toggleVideoMode(STATE.videoMode); };
-        $('#twx-media-download').checked = STATE.mediaDownload;
-        $('#twx-media-download').disabled = false;
-        $('#twx-media-download').onchange = e => { STATE.mediaDownload = e.target.checked; toggleMediaDownload(STATE.mediaDownload); };
+
+        // 修复媒体下载绑定
+        const mediaDl = $('#twx-media-download');
+        if (mediaDl) {
+            mediaDl.checked = STATE.mediaDownload;
+            mediaDl.onchange = e => { STATE.mediaDownload = e.target.checked; toggleMediaDownload(STATE.mediaDownload); };
+        }
 
         $('#twx-save').onclick = () => {
             STATE.rate.like = num('#limit-like', STATE.rate.like);
@@ -1227,7 +1126,7 @@ dayjs.extend(dayjs_plugin_utc);
 
         $('#twx-run').onclick = () => { LOG('手动触发全套任务'); autoCycle(); };
 
-        // 修复按钮事件绑定
+        // 修复按钮事件绑定 (Toggle)
         const toggleBtn = $('#twx-toggle');
         if (toggleBtn) {
             toggleBtn.onclick = async () => {
@@ -1239,14 +1138,14 @@ dayjs.extend(dayjs_plugin_utc);
                 const st = $('#twx-status');
                 if (STATE.running) {
                     toggleBtn.textContent = '暂停';
-                    toggleBtn.style.background = '#F7931E';
+                    toggleBtn.style.background = '#F7931E'; // Warning Color for pause
                     st.textContent = '运行中';
                     st.style.color = '#1DA1F2';
                     startLoop();
                     LOG('🚀 自动化已启动', 'success');
                 } else {
                     toggleBtn.textContent = '启动';
-                    toggleBtn.style.background = '#1DA1F2';
+                    toggleBtn.style.background = 'linear-gradient(135deg, #1D9BF0, #1A8CD8)';
                     st.textContent = '已暂停';
                     st.style.color = '#f91880';
                     if (STATE.timer) {
@@ -1282,12 +1181,12 @@ dayjs.extend(dayjs_plugin_utc);
             if (STATE.panelCollapsed) {
                 body.style.display = 'none';
                 btn.textContent = '▲';
-                panel.style.padding = '12px';
+                panel.style.height = 'auto'; // 自适应高度
                 btn.style.background = 'rgba(29,161,242,0.3)';
             } else {
                 body.style.display = 'block';
                 btn.textContent = '▼';
-                panel.style.padding = '16px';
+                panel.style.height = 'auto';
                 btn.style.background = 'rgba(29,161,242,0.2)';
             }
         };
@@ -1295,7 +1194,8 @@ dayjs.extend(dayjs_plugin_utc);
         setInterval(updProcessed, 4000);
     }
 
-    // 移除重复的toggleRun函数定义，已在面板创建时处理
+
+
 
     // ========== 视频模式功能 ==========
     function hasVideo(tweet) {
@@ -1708,70 +1608,77 @@ dayjs.extend(dayjs_plugin_utc);
     }
 
     // ========== 隐藏直播间 ==========
+    // ========== 清爽模式 (Hidden Spaces & Clean UI) ==========
     function toggleHideSpaces(enabled) {
         if (enabled) {
-            LOG('✅ 已开启隐藏直播间', 'success');
-            hideSpaces();
+            LOG('✅ 已开启清爽模式', 'success');
+            enableCleanMode();
         } else {
-            LOG('❌ 已关闭隐藏直播间', 'warning');
-            showSpaces();
+            LOG('❌ 已关闭清爽模式', 'warning');
+            disableCleanMode();
         }
     }
 
-    function hideSpaces() {
-        const spaceSelectors = [
-            '[data-testid="SpaceBar"]',
-            '[aria-label*="Space"]',
-            '[aria-label*="直播"]',
-            'div[role="button"][aria-label*="Live"]',
-            'div[data-testid="card.layoutLarge.media"] div[aria-label*="Space"]'
-        ];
+    function enableCleanMode() {
+        if (document.getElementById('clean-mode-style')) return;
 
-        let hiddenCount = 0;
-        spaceSelectors.forEach(selector => {
-            const elements = document.querySelectorAll(selector);
-            elements.forEach(el => {
-                const container = el.closest('article[data-testid="tweet"]') || el.closest('div[data-testid="cellInnerDiv"]');
-                if (container && !container.classList.contains('spaces-hidden')) {
-                    container.style.display = 'none';
-                    container.classList.add('spaces-hidden');
-                    hiddenCount++;
-                }
-            });
-        });
+        const style = document.createElement('style');
+        style.id = 'clean-mode-style';
+        style.textContent = `
+            /* 1. 隐藏右侧边栏 (趋势、推荐) */
+            [data-testid="sidebarColumn"] { display: none !important; }
 
-        // 只在有内容时记录日志
-        if (hiddenCount > 0) {
-            LOG(`隐藏 ${hiddenCount} 个直播间`, 'info');
-        }
+            /* 2. 隐藏左侧导航栏 (仅保留极简图标或完全隐藏，用户要求只保留中间) */
+            header[role="banner"] { display: none !important; }
 
-        // 监听新内容，但限制频率
-        if (!STATE.spacesObserver) {
-            let lastRun = 0;
-            STATE.spacesObserver = new MutationObserver(() => {
-                if (STATE.hideSpaces && Date.now() - lastRun > 2000) {
-                    lastRun = Date.now();
-                    setTimeout(hideSpaces, 500);
-                }
-            });
-            STATE.spacesObserver.observe(document.body, { childList: true, subtree: true });
-        }
+            /* 3. 隐藏底部栏 (移动端) */
+            [data-testid="BottomBar"] { display: none !important; }
+
+            /* 4. 主内容居中并大幅加宽 - 影院级体验 */
+            main[role="main"] {
+                align-items: center !important;
+                overflow-x: hidden;
+            }
+            [data-testid="primaryColumn"] {
+                max-width: 950px !important;
+                width: 100% !important;
+                margin: 0 auto !important;
+                border: none !important;
+            }
+
+            /* 让推文内容自动撑满新的宽度 */
+            [data-testid="primaryColumn"] > div > div > div {
+                max-width: 100% !important;
+            }
+
+            /* 优化媒体显示，防止变宽后过高 */
+            div[data-testid="tweetPhoto"] {
+                margin-top: 10px;
+            }
+
+            /* 5. 隐藏其他杂项 (如直播条) */
+            [data-testid="SpaceBar"], [aria-label*="Space"] { display: none !important; }
+
+            /* 6. 背景色统一 (可选) */
+            body { background-color: #000 !important; }
+        `;
+        document.head.appendChild(style);
+
+        // 触发一次 resize 以重新计算布局
+        window.dispatchEvent(new Event('resize'));
     }
 
-    function showSpaces() {
-        const hiddenSpaces = document.querySelectorAll('.spaces-hidden');
-        hiddenSpaces.forEach(el => {
-            el.style.display = '';
-            el.classList.remove('spaces-hidden');
-        });
+    function disableCleanMode() {
+        const style = document.getElementById('clean-mode-style');
+        if (style) style.remove();
 
-        if (STATE.spacesObserver) {
-            STATE.spacesObserver.disconnect();
-            STATE.spacesObserver = null;
-        }
+        // 恢复布局
+        window.dispatchEvent(new Event('resize'));
     }
 
-    // ========== 高清媒体 ==========
+    // (旧的 LOG 函数已移除，使用后文定义的优化版本)
+
+    // ========== 高清媒体优化 ==========
     function toggleHDMedia(enabled) {
         if (enabled) {
             LOG('✅ 已开启高清媒体显示', 'success');
@@ -1783,50 +1690,62 @@ dayjs.extend(dayjs_plugin_utc);
     }
 
     function enhanceMediaQuality() {
-        // 添加高清媒体样式
+        // 1. 添加高清图片样式 (仅针对图片容器，不影响视频)
         if (!document.querySelector('#hd-media-style')) {
             const style = document.createElement('style');
             style.id = 'hd-media-style';
             style.textContent = `
-                /* 高清图片 */
-                img[src*="pbs.twimg.com"] {
+                /* 仅针对推文图片容器内的图片 */
+                div[data-testid="tweetPhoto"] img[src*="pbs.twimg.com"] {
                     max-width: none !important;
                     width: auto !important;
                     height: auto !important;
+                    max-height: 80vh !important; /* 防止图片过高 */
                 }
-
-                /* 高清视频 */
-                video {
-                    max-width: 100% !important;
-                    height: auto !important;
-                }
-
-                /* 媒体容器优化 */
+                /* 确保图片容器允许溢出 */
                 div[data-testid="tweetPhoto"] {
-                    max-width: none !important;
+                    overflow: visible !important;
                 }
             `;
             document.head.appendChild(style);
         }
 
-        // 替换图片URL为高清版本
-        const images = document.querySelectorAll('img[src*="pbs.twimg.com"]');
-        images.forEach(img => {
-            if (!img.dataset.hdProcessed) {
-                const originalSrc = img.src;
-                const hdSrc = originalSrc.replace(/&name=\w+/, '&name=4096x4096').replace(/\?format=\w+&name=\w+/, '?format=jpg&name=4096x4096');
-                if (hdSrc !== originalSrc) {
-                    img.src = hdSrc;
-                    img.dataset.hdProcessed = 'true';
-                }
-            }
-        });
+        // 2. 核心逻辑：安全地替换图片URL
+        // 使用节流处理，避免频繁遍历 DOM
+        if (!STATE.hdThrottler) {
+            STATE.hdThrottler = throttle(() => {
+                // 只选择推文图片，严格排除视频封面
+                // 排除类名包含 video, player 的容器
+                const images = document.querySelectorAll('div[data-testid="tweetPhoto"] img[src*="pbs.twimg.com"]');
 
-        // 监听新图片
+                images.forEach(img => {
+                    if (img.dataset.hdProcessed) return;
+
+                    // 双重检查：确保不是视频海报
+                    if (img.closest('[data-testid="videoPlayer"]')) return;
+                    if (img.src.includes('video_thumb')) return;
+
+                    const originalSrc = img.src;
+                    // 尝试替换为 4096x4096 (原图)
+                    const hdSrc = originalSrc.replace(/&name=\w+/, '&name=4096x4096').replace(/\?format=\w+&name=\w+/, '?format=jpg&name=4096x4096');
+
+                    if (hdSrc !== originalSrc) {
+                        img.src = hdSrc;
+                        img.dataset.hdProcessed = 'true';
+                        // 可选：加载失败回退逻辑
+                        img.onerror = () => { img.src = originalSrc; };
+                    }
+                });
+            }, 1000); // 1秒最多执行一次
+        }
+
+        STATE.hdThrottler();
+
+        // 3. 监听新图片 (优化：降低频率)
         if (!STATE.mediaObserver) {
             STATE.mediaObserver = new MutationObserver(() => {
-                if (STATE.hdMedia) {
-                    setTimeout(enhanceMediaQuality, 500);
+                if (STATE.hdMedia && STATE.hdThrottler) {
+                    STATE.hdThrottler();
                 }
             });
             STATE.mediaObserver.observe(document.body, { childList: true, subtree: true });
@@ -1835,15 +1754,66 @@ dayjs.extend(dayjs_plugin_utc);
 
     function restoreMediaQuality() {
         const hdStyle = document.querySelector('#hd-media-style');
-        if (hdStyle) {
-            hdStyle.remove();
-        }
-
+        if (hdStyle) hdStyle.remove();
         if (STATE.mediaObserver) {
             STATE.mediaObserver.disconnect();
             STATE.mediaObserver = null;
         }
+        // 清理 throttler
+        STATE.hdThrottler = null;
     }
+
+    // ========== 性能优化工具 ==========
+
+    // 优化的日志函数：支持去重和计数
+    let lastLogMsg = '';
+    let lastLogCount = 1;
+    let lastLogTime = 0;
+
+    const LOG = (msg, type='info') => {
+        const now = Date.now();
+        const box = document.querySelector('#twx-log');
+
+        // 1. 控制台输出 (保持原样，方便调试)
+        // 1. 控制台输出 (保持原样，方便调试)
+        const prefix = `[📷 X-Lens] `;
+        const colorMap = { info: '#1DA1F2', success: '#17BF63', error: '#FF3B30', warning: '#F7931E' };
+        // console.log(`%c${prefix}${msg}`, `color: ${colorMap[type] || colorMap.info}; font-weight: bold;`);
+
+        // 2. UI 日志去重逻辑
+        if (box && !STATE.logCollapsed) {
+            // 如果消息相同且在2秒内，只更新计数
+            if (msg === lastLogMsg && (now - lastLogTime < 2000)) {
+                lastLogCount++;
+                const lastChild = box.lastElementChild;
+                if (lastChild) {
+                    const time = new Date().toLocaleTimeString();
+                    lastChild.innerHTML = `<span style="opacity:0.7">[${time}]</span> ${msg} <span style="background:#333; padding:1px 4px; border-radius:4px; font-size:10px;">x${lastLogCount}</span>`;
+                }
+                lastLogTime = now;
+                return;
+            }
+
+            // 新消息
+            lastLogMsg = msg;
+            lastLogCount = 1;
+            lastLogTime = now;
+
+            const time = new Date().toLocaleTimeString();
+            const color = colorMap[type] || colorMap.info;
+            const entry = document.createElement('div');
+            entry.style.cssText = `color: ${color}; font-size: 11px; margin: 2px 0; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 2px;`;
+            entry.innerHTML = `<span style="opacity:0.7">[${time}]</span> ${msg}`;
+            box.appendChild(entry);
+
+            box.scrollTop = box.scrollHeight;
+
+            // 限制日志数量
+            while (box.children.length > 50) {
+                box.removeChild(box.firstElementChild);
+            }
+        }
+    };
 
     // ========== 性能优化工具函数 ==========
     // 移除重复的$函数定义，使用前面已定义的版本
@@ -1888,56 +1858,98 @@ dayjs.extend(dayjs_plugin_utc);
         modal.id = 'advanced-search-modal';
         modal.style.cssText = `
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5); z-index: 10000; display: block;
+            background: rgba(91, 112, 131, 0.4); z-index: 10000; display: block;
+            backdrop-filter: blur(8px);
+            animation: fadeIn 0.2s ease-out;
         `;
 
         const content = document.createElement('div');
         content.style.cssText = `
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: #fff; border-radius: 16px; padding: 24px; width: 500px; max-width: 90vw;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            background: #000000;
+            border: 1px solid #2F3336;
+            border-radius: 20px;
+            padding: 32px;
+            width: 580px;
+            max-width: 90vw;
+            box-shadow: 0 24px 64px rgba(0,0,0,0.7);
+            color: #E7E9EA;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        `;
+
+        // 通用输入框样式函数
+        const inputStyle = `
+            width: 100%;
+            padding: 12px 16px;
+            background: #202327;
+            border: 1px solid #333639;
+            border-radius: 4px;
+            color: #E7E9EA;
+            font-size: 15px;
+            box-sizing: border-box;
+            outline: none;
+            transition: all 0.2s;
+        `;
+
+        const labelStyle = `
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 700;
+            color: #E7E9EA;
+            font-size: 14px;
         `;
 
         content.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h2 style="margin: 0; color: #1d9bf0; font-size: 20px;">🔍 高级搜索</h2>
-                <button id="close-search-modal" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #657786;">×</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                <h2 style="margin: 0; color: #E7E9EA; font-size: 20px; font-weight: 800;">🔍 高级搜索</h2>
+                <button id="close-search-modal" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #EFF3F4; padding: 4px; border-radius: 50%; transition: background 0.2s;">×</button>
             </div>
 
-            <div style="margin-bottom: 16px;">
-                <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #14171a;">包含所有这些词语</label>
-                <input type="text" id="search-all-words" placeholder="例如：AI 新闻" style="width: 100%; padding: 12px; border: 1px solid #e1e8ed; border-radius: 8px; font-size: 14px; box-sizing: border-box;">
+            <div style="display: grid; gap: 16px;">
+                <div>
+                    <label style="${labelStyle}">包含所有这些词语</label>
+                    <input type="text" id="search-all-words" placeholder="例如：AI 新闻" style="${inputStyle}">
+                </div>
+
+                <div>
+                    <label style="${labelStyle}">完整短语</label>
+                    <input type="text" id="search-exact-phrase" placeholder='例如："ChatGPT 4o"' style="${inputStyle}">
+                </div>
+
+                <div>
+                    <label style="${labelStyle}">任意一个词语</label>
+                    <input type="text" id="search-any-words" placeholder="例如：iPhone Android" style="${inputStyle}">
+                </div>
+
+                <div>
+                    <label style="${labelStyle}">不包含这些词语</label>
+                    <input type="text" id="search-exclude-words" placeholder="例如：-促销 -广告" style="${inputStyle}">
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div>
+                        <label style="${labelStyle}">话题标签</label>
+                        <input type="text" id="search-hashtag" placeholder="例如：#摄影" style="${inputStyle}">
+                    </div>
+                    <div>
+                        <label style="${labelStyle}">来自账户</label>
+                        <input type="text" id="search-from-user" placeholder="例如：@elonmusk" style="${inputStyle}">
+                    </div>
+                </div>
             </div>
 
-            <div style="margin-bottom: 16px;">
-                <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #14171a;">完整短语</label>
-                <input type="text" id="search-exact-phrase" placeholder='例如："ChatGPT 4o"' style="width: 100%; padding: 12px; border: 1px solid #e1e8ed; border-radius: 8px; font-size: 14px; box-sizing: border-box;">
+            <div style="display: flex; gap: 16px; margin-top: 32px; padding-top: 20px; border-top: 1px solid #2F3336;">
+                <button id="clear-search-form" style="flex: 1; padding: 12px; background: transparent; color: #EFF3F4; border: 1px solid #536471; border-radius: 20px; cursor: pointer; font-size: 15px; font-weight: bold; transition: all 0.2s;">清除</button>
+                <button id="execute-search" style="flex: 2; padding: 12px; background: #1D9BF0; color: white; border: none; border-radius: 20px; cursor: pointer; font-size: 15px; font-weight: bold; transition: background 0.2s; box-shadow: 0 4px 12px rgba(29, 155, 240, 0.3);">搜索</button>
             </div>
 
-            <div style="margin-bottom: 16px;">
-                <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #14171a;">任意一个词语</label>
-                <input type="text" id="search-any-words" placeholder="例如：iPhone Android" style="width: 100%; padding: 12px; border: 1px solid #e1e8ed; border-radius: 8px; font-size: 14px; box-sizing: border-box;">
-            </div>
-
-            <div style="margin-bottom: 16px;">
-                <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #14171a;">不包含这些词语</label>
-                <input type="text" id="search-exclude-words" placeholder="例如：-促销 -广告" style="width: 100%; padding: 12px; border: 1px solid #e1e8ed; border-radius: 8px; font-size: 14px; box-sizing: border-box;">
-            </div>
-
-            <div style="margin-bottom: 16px;">
-                <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #14171a;">话题标签</label>
-                <input type="text" id="search-hashtag" placeholder="例如：#技术活动" style="width: 100%; padding: 12px; border: 1px solid #e1e8ed; border-radius: 8px; font-size: 14px; box-sizing: border-box;">
-            </div>
-
-            <div style="margin-bottom: 16px;">
-                <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #14171a;">来自账户</label>
-                <input type="text" id="search-from-user" placeholder="例如：@elonmusk" style="width: 100%; padding: 12px; border: 1px solid #e1e8ed; border-radius: 8px; font-size: 14px; box-sizing: border-box;">
-            </div>
-
-            <div style="display: flex; gap: 12px; margin-top: 24px;">
-                <button id="clear-search-form" style="flex: 1; padding: 12px; background: #657786; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px;">清除</button>
-                <button id="execute-search" style="flex: 2; padding: 12px; background: #1d9bf0; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold;">搜索</button>
-            </div>
+            <style>
+                #advanced-search-modal input:focus { border-color: #1D9BF0 !important; background: #000 !important; }
+                #close-search-modal:hover { background: rgba(239, 243, 244, 0.1); }
+                #clear-search-form:hover { background: rgba(239, 243, 244, 0.1); }
+                #execute-search:hover { background: #1A8CD8 !important; }
+                @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+            </style>
         `;
 
         modal.appendChild(content);
@@ -2095,9 +2107,27 @@ dayjs.extend(dayjs_plugin_utc);
             }
         }, 1000);
 
-        LOG('🍑 Twitter/X 女秘书 v2.0 终极版已启动 | 由 @OnlyPeachFWD 设计制作', 'success');
-        LOG('🚀 功能模块：自动化操作 + 高清媒体下载 + 界面优化 + 快捷键支持', 'info');
+        LOG('📷 X-Lens (原女秘书) v2.0 已启动 | 摄影师专属版', 'success');
+        LOG('🚀 核心模块：自动化操作 + 极致高清 + 影院模式 + 快捷键支持', 'info');
         LOG('⌨️  快捷键：Ctrl+Shift+T(面板) | Ctrl+Shift+S(搜索) | Ctrl+Shift+P(暂停)', 'info');
+
+        // ========== 暴露 API 供主脚本集成 ==========
+        window.XLens = {
+            openPanel: () => {
+                const p = $('#twx-panel');
+                if (p) p.style.display = 'block';
+            },
+            closePanel: () => {
+                 const p = $('#twx-panel');
+                 if (p) p.style.display = 'none';
+            },
+            togglePanel: () => {
+                const p = $('#twx-panel');
+                if (p) p.style.display = (p.style.display === 'none' ? 'block' : 'none');
+            },
+            toggleAutomation: () => $('#twx-toggle')?.click(),
+            getStats: () => STATE.count
+        };
 
         // 初始化新功能
         setTimeout(() => {
@@ -2138,7 +2168,8 @@ dayjs.extend(dayjs_plugin_utc);
     });
 
     // ========== 脚本信息 ==========
-    console.log('%c🍑 Twitter/X 女秘书 v2.0 终极版', 'color: #1DA1F2; font-size: 20px; font-weight: bold;');
+    // ========== 脚本信息 ==========
+    console.log('%c📷 Twitter/X Lens v2.0 (Pro)', 'color: #1DA1F2; font-size: 20px; font-weight: bold;');
     console.log('%c由 Claude AI 精心打造 | 植人大树 出品', 'color: #17BF63; font-size: 14px;');
     console.log('%c功能特性: 自动化操作 + 高清媒体下载 + 界面优化 + 快捷键支持', 'color: #F7931E; font-size: 12px;');
 

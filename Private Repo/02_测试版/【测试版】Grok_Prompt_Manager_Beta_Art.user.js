@@ -2930,13 +2930,18 @@
                 libSelectorPanel = document.createElement('div');
                 libSelectorPanel.className = 'gpm-lib-selector-panel';
 
-                // 尝试恢复保存的位置
+                // 尝试恢复保存的位置和大小
                 const savedPos = localStorage.getItem('gpm_libPanelPos');
                 let positionStyle = '';
+                let sizeStyle = 'width: 320px; height: 500px;'; // Default size
+
                 if (savedPos) {
                     try {
                         const pos = JSON.parse(savedPos);
                         positionStyle = `left: ${pos.left}px; top: ${pos.top}px;`;
+                        if (pos.width && pos.height) {
+                            sizeStyle = `width: ${pos.width}px; height: ${pos.height}px;`;
+                        }
                     } catch (e) {
                         positionStyle = `top: 120px; ${isLeft ? 'left: 400px;' : 'right: 400px;'}`;
                     }
@@ -2947,8 +2952,7 @@
                 libSelectorPanel.style.cssText = `
                     position: fixed;
                     ${positionStyle}
-                    width: 320px;
-                    max-height: 600px;
+                    ${sizeStyle}
                     background: rgba(20, 20, 30, 0.95);
                     backdrop-filter: blur(16px);
                     -webkit-backdrop-filter: blur(16px);
@@ -3011,7 +3015,9 @@
                     const rect = libSelectorPanel.getBoundingClientRect();
                     localStorage.setItem('gpm_libPanelPos', JSON.stringify({
                         left: rect.left,
-                        top: rect.top
+                        top: rect.top,
+                        width: rect.width,
+                        height: rect.height
                     }));
 
                     document.removeEventListener('mousemove', onMove);
@@ -3060,7 +3066,6 @@
                     flex: 1;
                     overflow-y: auto;
                     padding: 8px;
-                    max-height: 500px;
                 `;
                 listContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">Loading...</div>';
 
@@ -3068,6 +3073,63 @@
                 libSelectorPanel.appendChild(header);
                 libSelectorPanel.appendChild(searchBox);
                 libSelectorPanel.appendChild(listContainer);
+
+                // Resize Handle
+                const resizer = document.createElement('div');
+                resizer.className = 'resize-handle-lib';
+                resizer.style.cssText = `
+                    position: absolute; bottom: 0; right: 0;
+                    width: 15px; height: 15px; cursor: nwse-resize;
+                    background: linear-gradient(135deg, transparent 50%, rgba(255,255,255,0.1) 50%);
+                    z-index: 10;
+                    border-bottom-right-radius: 12px;
+                `;
+                libSelectorPanel.appendChild(resizer);
+
+                // Resize Logic
+                let isResizingLib = false;
+                let startLW, startLH, startLX, startLY;
+
+                resizer.onmousedown = (e) => {
+                    e.stopPropagation();
+                    isResizingLib = true;
+                    startLX = e.clientX;
+                    startLY = e.clientY;
+                    startLW = libSelectorPanel.offsetWidth;
+                    startLH = libSelectorPanel.offsetHeight;
+
+                    document.addEventListener('mousemove', onResizeLib);
+                    document.addEventListener('mouseup', onResizeLibUp);
+                };
+
+                const onResizeLib = (e) => {
+                    if (!isResizingLib) return;
+                    e.preventDefault(); // Prevent text selection
+                    const dx = e.clientX - startLX;
+                    const dy = e.clientY - startLY;
+
+                    const w = startLW + dx;
+                    const h = startLH + dy;
+
+                    if (w > 250) libSelectorPanel.style.width = w + 'px';
+                    if (h > 300) libSelectorPanel.style.height = h + 'px';
+                };
+
+                const onResizeLibUp = () => {
+                    if (!isResizingLib) return;
+                    isResizingLib = false;
+                    document.removeEventListener('mousemove', onResizeLib);
+                    document.removeEventListener('mouseup', onResizeLibUp);
+
+                    // Save Size & Position
+                    const rect = libSelectorPanel.getBoundingClientRect();
+                    localStorage.setItem('gpm_libPanelPos', JSON.stringify({
+                        left: rect.left,
+                        top: rect.top,
+                        width: rect.width,
+                        height: rect.height
+                    }));
+                };
 
                 // Mount to Shadow Root
                 this.shadow.appendChild(libSelectorPanel);
@@ -5455,16 +5517,12 @@ Breast squeeze, pressing breasts together"></textarea>
             this.autoRetryManager.init();
 
             // Special Mode for x.com/home (Lite Mode) - Exclude Grok interface
-            const isX = window.location.hostname.includes('x.com') || window.location.hostname.includes('twitter.com');
             // 🟡 FIX #6: More precise Grok detection
-            const isGrok = window.location.pathname.includes('/i/grok') ||
-                window.location.hostname === 'grok.com';
+            // const isGrok = window.location.pathname.includes('/i/grok') ||
+            //    window.location.hostname === 'grok.com';
+            //
+            // Lite Mode Removed: Unifying startup logic for full integration
 
-            if (isX && !isGrok) {
-                console.log('[GPM] Lite Mode activated for X.com');
-                this.renderXSearchWidget();
-                return; // Stop here, do not load full AGI panels
-            }
 
             // ✨ FEATURE #1: Global keyboard shortcuts
             document.addEventListener('keydown', (e) => {
@@ -6691,53 +6749,7 @@ Breast squeeze, pressing breasts together"></textarea>
 
 
 
-        renderXSearchWidget() {
-            const widget = new Component(this.styles);
-            const btnStyle = `
-                width: 50px; height: 50px; border-radius: 50%;
-                background: rgba(0,0,0,0.6); backdrop-filter: blur(10px);
-                border: 1px solid rgba(255,255,255,0.1);
-                display: flex; align-items: center; justify-content: center;
-                cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-                transition: transform 0.2s, background 0.2s;
-                font-size: 24px; color: white;
-            `;
-            widget.render(`
-                <div class="gpm-widget-container" style="
-                    position: fixed; bottom: 80px; right: 20px;
-                    display: flex; flex-direction: column; gap: 15px;
-                    z-index: 9999;
-                ">
-                    <!-- Advanced Search -->
-                    <div class="gpm-widget-btn search-btn" style="${btnStyle}" title="Advanced Search">
-                        <span>🔍</span>
-                    </div>
 
-                    <!-- Grok -->
-                    <div class="gpm-widget-btn grok-btn" style="${btnStyle}" title="Go to Grok">
-                        <span>🤖</span>
-                    </div>
-                </div>
-            `);
-            widget.mount(this.container);
-
-            const setupBtn = (selector, action) => {
-                const el = widget.shadow.querySelector(selector);
-                if (!el) return;
-                el.onmouseenter = () => {
-                    el.style.transform = 'scale(1.1)';
-                    el.style.background = 'rgba(29, 155, 240, 0.8)';
-                };
-                el.onmouseleave = () => {
-                    el.style.transform = 'scale(1)';
-                    el.style.background = 'rgba(0,0,0,0.6)';
-                };
-                el.onclick = action;
-            };
-
-            setupBtn('.grok-btn', () => window.location.href = 'https://x.com/i/grok');
-            setupBtn('.search-btn', () => window.location.href = 'https://x.com/search-advanced');
-        }
 
         renderToggle() {
             const toggle = new Component(this.styles);
@@ -6745,6 +6757,16 @@ Breast squeeze, pressing breasts together"></textarea>
                 const btn = toggle.shadow.querySelector('.gpm-toggle');
                 // Sync Logic: Toggle all based on Left Panel state
                 btn.onclick = () => {
+                    // 🚀 X-Lens Integration Check
+                    const isX = window.location.hostname.includes('x.com') || window.location.hostname.includes('twitter.com');
+                    // Check if X-Lens is loaded (exposed via window.XLens)
+                    if (isX && window.XLens && typeof window.XLens.togglePanel === 'function') {
+                        console.log('[GPM] 🚀 X-Lens detected! Toggling X-Lens panel...');
+                        window.XLens.togglePanel();
+                        return; // Control handed over to X-Lens
+                    }
+
+                    // Default Grok Logic (fallback or grok.com)
                     const isLeftVisible = this.leftPanel.shadow.querySelector('.side-panel').style.display !== 'none';
                     if (isLeftVisible) {
                         this.leftPanel.hide();
