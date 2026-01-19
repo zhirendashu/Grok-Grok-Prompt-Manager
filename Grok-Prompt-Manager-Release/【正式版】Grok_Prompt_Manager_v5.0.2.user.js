@@ -2,7 +2,7 @@
 // @name         Grok AGI 全能助手 (集成 X-Lens)
 // @name:zh-CN   Grok AGI 全能助手 | 植人大树出品
 // @namespace    http://tampermonkey.net/
-// @version      5.0.1
+// @version      5.0.2
 // @description  Grok 提示词母舰 + X-Lens 社交战斗机 | 一站式 AGI 生产力套件
 // @author       植人大树
 // @match        https://grok.com/*
@@ -31,6 +31,12 @@
 
 /**
  * 📜 Changelog
+ *
+ * v5.0.2 (2026-01-20):
+ * - **性能优化**: 引入全局防抖 (Debounce) 机制，重构 DOM 监听器，显著降低内存占用与卡顿
+ * - **健壮性**: 修复 App_ID 硬编码隐患，提升长期维护稳定性
+ * - **体验优化**: 批量视频生成增加中断保护，防止误操作无法停止
+ * - **修复**: 修正 AutoRetryManager 启动时可能因初始化顺序导致的报错
  *
  * v5.0.1 (2026-01-19):
  * - **紧急修复**: 严格限制 Grok 提示词面板仅在 grok.com 初始化
@@ -217,6 +223,15 @@
     const OLD_DB_KEY = 'grok_prompt_manager_data';
     const APP_ID = 'grok-prompt-manager-v2';
 
+    // --- UTILS ---
+    function debounce(func, wait) {
+        let timeout;
+        return function(...args) {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(this, args), wait);
+        };
+    }
+
     // --- PROMPT INSPECTOR STORE & HOOK ---
     const GLOBAL_POST_STORE = {};
 
@@ -382,7 +397,9 @@
             if (!document.body) {
                 return setTimeout(() => this.waitForBody(), 50);
             }
-            const observer = new MutationObserver(() => this.injectUI());
+            // ⚡ Performance: Debounce Observer
+            const debouncedInject = debounce(() => this.injectUI(), 500);
+            const observer = new MutationObserver(() => debouncedInject());
             observer.observe(document.body, { childList: true, subtree: true });
             this.injectUI();
         }
@@ -1314,9 +1331,14 @@
         start() {
             if (this.observer) return;
             this.scan();
-            this.observer = new MutationObserver((mutations) => {
+            // ⚡ Performance: Debounced Scan
+            const debouncedScan = debounce(() => {
                 if (!this.enabled) return;
                 this.scan();
+            }, 1000); // 1s debounce for heavy upscale scan
+
+            this.observer = new MutationObserver((mutations) => {
+                debouncedScan();
             });
             this.observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['src'] });
         }
@@ -5051,7 +5073,7 @@ Breast squeeze, pressing breasts together"></textarea>
             this.currentImageId = null;
             this.retryCount = 0;
             this.isRetrying = false;
-            this.panel = null;
+
 
             // Styles
             this.addStyles();
@@ -5161,6 +5183,7 @@ Breast squeeze, pressing breasts together"></textarea>
             this.panel = document.createElement('div');
             this.panel.className = 'gpm-retry-panel';
             document.body.appendChild(this.panel);
+            this.panel.style.display = 'none'; // 🔴 FIX: Explicitly set initial state to match toggle logic
             this.updatePanel();
         }
 
@@ -5399,8 +5422,8 @@ Breast squeeze, pressing breasts together"></textarea>
 
             if (!redoBtn) {
                 console.log("❌ Redo button not found");
-                this.autoRedo = false;
-                this.saveSettings();
+                // this.autoRedo = false; // 🔴 Removed: Do not auto-disable
+                // this.saveSettings();
                 this.updatePanel();
                 this.isRetrying = false;
                 return;
@@ -5454,6 +5477,10 @@ Breast squeeze, pressing breasts together"></textarea>
             let failCount = 0;
 
             for (let i = 0; i < visibleButtons.length; i++) {
+                if (!this.isBatchGenerating) { // 🛑 SAFETY: Stop if user cancelled (closed panel)
+                    console.log('[批量生成] 用户中止操作');
+                    break;
+                }
                 try {
                     const btn = visibleButtons[i];
 
@@ -5551,7 +5578,7 @@ Breast squeeze, pressing breasts together"></textarea>
             document.addEventListener('keydown', (e) => {
                 // Ignore if user is typing in input/textarea (except our own)
                 const target = e.target;
-                const isOurElement = target.closest && target.closest('#grok-prompt-manager-v2');
+                const isOurElement = target.closest && target.closest('#' + APP_ID); // 🛡️ Fix hardcoded ID
                 if (!isOurElement && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
                     return;
                 }
