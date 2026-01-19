@@ -1,9 +1,9 @@
-# 🚀 Grok 提示词管理器 v5.0 (Grok Prompt Manager)
+# 🚀 Grok AGI 全能助手 v5.0.1 (Grok Prompt Manager + X-Lens)
 
 > **这里的提示词，懂你。**
-> 新一代智能提示词管理工具，专为 Grok 文生图/视频量身打造。
+> 新一代智能提示词管理工具，专为 Grok 文生图/视频量身打造。集成了 X-Lens 社交模块，打造双核 AGI 生产力套件。
 
-![Version](https://img.shields.io/badge/Version-v5.0-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-v5.0.1-blue?style=flat-square)
 ![License](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-green?style=flat-square)
 ![Platform](https://img.shields.io/badge/Platform-Grok-1d9bf0?style=flat-square)
 
