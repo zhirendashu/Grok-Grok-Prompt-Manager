@@ -9157,33 +9157,32 @@ dayjs.extend(dayjs_plugin_utc);
 
     // 🎯 创建 X-Lens 专属浮动按钮
     function createXLensToggleButton() {
+        const pos = GM_getValue('xlens_btn_pos', { bottom: '20px', right: '20px' });
         const btn = document.createElement('div');
         btn.id = 'xlens-toggle-btn';
         btn.style.cssText = `
             position: fixed;
-            bottom: 20px;
-            right: 20px;
+            ${pos.top ? `top: ${pos.top};` : `bottom: ${pos.bottom};`}
+            ${pos.left ? `left: ${pos.left};` : `right: ${pos.right};`}
             width: 56px;
             height: 56px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            cursor: pointer;
+            cursor: move;
             z-index: 999999;
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s, border-color 0.3s;
             user-select: none;
-            // background: #000 url("${APP_ICON_BASE64}") no-repeat center center;
-            // background-size: cover;
             background: #000;
             border: 2px solid rgba(255,255,255,0.1);
+            touch-action: none;
         `;
 
         // ✨ 使用纯 SVG 绘制 "镜头/光圈" 图标 (X-Lens Identity)
-        // 解决图片加载失败导致的黑球问题，且符合摄影师审美
         btn.innerHTML = `
-            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width: 32px; height: 32px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width: 32px; height: 32px; pointer-events: none;">
                 <circle cx="12" cy="12" r="10"></circle>
                 <line x1="14.31" y1="8" x2="20.05" y2="17.94"></line>
                 <line x1="9.69" y1="8" x2="21.17" y2="8"></line>
@@ -9194,11 +9193,65 @@ dayjs.extend(dayjs_plugin_utc);
             </svg>
         `;
 
+        // 拖拽逻辑变量
+        let isDragging = false;
+        let startX, startY, initialLeft, initialTop;
+
+        // 鼠标按下：准备拖拽
+        btn.onmousedown = (e) => {
+            isDragging = false;
+            startX = e.clientX;
+            startY = e.clientY;
+            const rect = btn.getBoundingClientRect();
+            initialLeft = rect.left;
+            initialTop = rect.top;
+
+            btn.style.transition = 'none'; // 移动时关闭平滑过渡以提高响应速度
+
+            const onMouseMove = (moveEvent) => {
+                const dx = moveEvent.clientX - startX;
+                const dy = moveEvent.clientY - startY;
+
+                // 移动距离超过 5px 才判定为拖拽
+                if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+                    isDragging = true;
+                }
+
+                if (isDragging) {
+                    btn.style.left = `${initialLeft + dx}px`;
+                    btn.style.top = `${initialTop + dy}px`;
+                    btn.style.bottom = 'auto'; // 拖拽后清除 bottom 约束
+                    btn.style.right = 'auto';   // 拖拽后清除 right 约束
+                }
+            };
+
+            const onMouseUp = () => {
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', onMouseUp);
+                btn.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s, border-color 0.3s';
+
+                if (isDragging) {
+                    // 保存新位置
+                    const rect = btn.getBoundingClientRect();
+                    GM_setValue('xlens_btn_pos', {
+                        top: `${rect.top}px`,
+                        left: `${rect.left}px`
+                    });
+                    console.log(`[X-Lens] New position saved: ${rect.left}, ${rect.top}`);
+                }
+            };
+
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+        };
+
         // 悬停效果
         btn.onmouseenter = () => {
-            btn.style.transform = 'scale(1.1)';
-            btn.style.boxShadow = '0 6px 20px rgba(29, 161, 242, 0.6)';
-            btn.style.borderColor = '#1D9BF0';
+            if (!isDragging) {
+                btn.style.transform = 'scale(1.1)';
+                btn.style.boxShadow = '0 6px 20px rgba(29, 161, 242, 0.6)';
+                btn.style.borderColor = '#1D9BF0';
+            }
         };
         btn.onmouseleave = () => {
             btn.style.transform = 'scale(1)';
@@ -9207,7 +9260,13 @@ dayjs.extend(dayjs_plugin_utc);
         };
 
         // 点击切换面板
-        btn.onclick = () => {
+        btn.onclick = (e) => {
+            // 如果刚刚发生了拖拽，则不触发点击
+            if (isDragging) {
+                e.preventDefault();
+                e.stopPropagation();
+                return;
+            }
             const panel = $('#twx-panel');
             if (panel) {
                 panel.style.display = (panel.style.display === 'none' ? 'block' : 'none');
@@ -9218,7 +9277,7 @@ dayjs.extend(dayjs_plugin_utc);
         const appendButton = () => {
             if (document.body) {
                 document.body.appendChild(btn);
-                console.log('[X-Lens] Toggle button created');
+                console.log('[X-Lens] Toggle button created with drag support');
             } else {
                 setTimeout(appendButton, 100);
             }
