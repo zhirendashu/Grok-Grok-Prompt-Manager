@@ -1,6 +1,5 @@
 import { Component } from './Component.js';
 import { ICON_SET, UI_THEME } from '../style/Theme.js';
-import { TemplateEngine } from '../core/TemplateEngine.js';
 
 /**
  * 🖼️ SidePanel: Hyper-Performance UI (Hyperion v6.0)
@@ -18,8 +17,6 @@ export class SidePanel extends Component {
         this.top = config.top || 80;
         this.leftPos = config.left || 20;
         this.rightPos = config.right || 20;
-
-        // ✨ 持久化：从存储或配置中读取可见性
         this.visible = config.visible || false;
 
         this.activeCategory = '全部 (All)';
@@ -51,10 +48,8 @@ export class SidePanel extends Component {
 
     renderFramework() {
         const isLeft = this.side === 'left';
+        const posStyle = isLeft ? `left: ${this.leftPos}px;` : `right: ${this.rightPos}px;`;
         const displayStyle = this.visible ? 'display: flex;' : 'display: none;';
-        const posStyle = isLeft
-            ? `left: ${this.leftPos}px; right: auto;`
-            : `right: ${this.rightPos}px; left: auto;`;
 
         this.render(`
             <style>
@@ -72,34 +67,29 @@ export class SidePanel extends Component {
                     border-radius: ${UI_THEME.radius};
                     box-shadow: var(--gpm-shadow);
                     color: #fff; display: flex; flex-direction: column; overflow: hidden;
-                    z-index: 10000; transition: transform 0.3s ease, opacity 0.3s ease;
+                    z-index: 10000; transition: ${UI_THEME.transition};
                     ${displayStyle}
                 }
-                .header { padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); cursor: move; user-select: none; }
+                .header { padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); cursor: move; }
                 .gpm-btn {
                     background: rgba(255,255,255,0.1); border: none; color: white;
                     padding: 5px 10px; border-radius: 4px; cursor: pointer;
                     transition: all 0.2s; display: flex; align-items: center; justify-content: center;
                 }
                 .gpm-btn:hover { background: rgba(255,255,255,0.2); }
-                .gpm-btn svg { width: 16px; height: 16px; }
+                .gpm-btn.primary { background: var(--gpm-primary); }
 
-                .modifiers-bar, .category-bar {
-                    padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.05);
-                    display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none;
-                }
                 .content { flex: 1; overflow-y: auto; padding: 10px; }
+                .modifiers-bar, .category-bar { padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; gap: 4px; overflow-x: auto; }
 
-                .highlight { color: var(--gpm-primary); font-weight: bold; }
+                .highlight { color: #1d9bf0; font-weight: bold; }
                 .resize-handle {
                     position: absolute; bottom: 0; width: 20px; height: 20px;
                     background: linear-gradient(135deg, transparent 50%, rgba(255,255,255,0.1) 50%);
-                    z-index: 10; cursor: nwse-resize;
+                    z-index: 10;
                 }
 
-                /* 状态类 */
-                .side-panel.hidden { display: none; }
-
+                /* 滚动条美化 */
                 ::-webkit-scrollbar { width: 4px; height: 4px; }
                 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 2px; }
             </style>
@@ -109,7 +99,6 @@ export class SidePanel extends Component {
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <span style="font-weight: bold;">${isLeft ? '图片 (Image)' : '视频 (Video)'}</span>
                         <div style="display: flex; gap: 5px;">
-                            <button class="gpm-btn draft-btn" title="查看草稿/历史">${ICON_SET.Draft}</button>
                             <button class="gpm-btn auto-hide-btn" title="自动隐藏">📌</button>
                             <button class="gpm-btn min-btn">${ICON_SET.Minimize}</button>
                         </div>
@@ -144,7 +133,7 @@ export class SidePanel extends Component {
                 </div>
 
                 <div class="content">
-                    <div id="prompt-container" style="display: flex; flex-direction: column; gap: 8px;"></div>
+                    <div id="prompt-container"></div>
                 </div>
 
                 <div class="resize-handle" style="${isLeft ? 'right: 0;' : 'left: 0; transform: scaleX(-1);'}"></div>
@@ -157,7 +146,7 @@ export class SidePanel extends Component {
         const panel = this.shadow.querySelector('.side-panel');
         const header = this.shadow.querySelector('.header');
 
-        // 1. 拖拽逻辑 (Drag & Drop)
+        // 拖拽逻辑
         let isDragging = false;
         let startX, startY, initialL, initialT;
 
@@ -187,47 +176,33 @@ export class SidePanel extends Component {
             panel.style.transition = UI_THEME.transition;
             document.removeEventListener('mousemove', onMove);
             document.removeEventListener('mouseup', onUp);
-            this.notifyStateChange();
+            this.saveState();
         };
 
-        // 2. 搜索绑定
+        // 绑定搜索
         const searchInput = this.shadow.querySelector('.search-input');
         searchInput.oninput = (e) => {
             this.filterText = e.target.value;
             this.renderList();
         };
 
-        // 3. 模式切换 (追加/替换)
+        // 绑定模式切换
         this.shadow.querySelectorAll('.mode-btn').forEach(btn => {
             btn.onclick = () => {
                 this.clickMode = btn.dataset.mode;
                 this.shadow.querySelectorAll('.mode-btn').forEach(b => {
                     b.style.background = 'transparent';
-                    b.style.opacity = '0.7';
                     b.classList.remove('active');
                 });
                 btn.style.background = 'var(--gpm-primary)';
-                btn.style.opacity = '1';
                 btn.classList.add('active');
             };
         });
 
-        // 4. 重试面板联动
+        // 联动自动重试按钮
         const aiAssistBtn = this.shadow.querySelector('.ai-assist-btn');
         aiAssistBtn.onclick = () => {
             if (this.onAiAssistTrigger) this.onAiAssistTrigger();
-        };
-
-        // 5. 库切换触发
-        const libTrigger = this.shadow.querySelector('.lib-trigger-area');
-        libTrigger.onclick = () => {
-            if (this.onLibrarySelectorToggle) this.onLibrarySelectorToggle();
-        };
-
-        // 6. 草稿面板触发
-        const draftBtn = this.shadow.querySelector('.draft-btn');
-        draftBtn.onclick = () => {
-            if (this.onDraftToggle) this.onDraftToggle();
         };
     }
 
@@ -241,10 +216,8 @@ export class SidePanel extends Component {
             chip.textContent = cat;
             const isActive = cat === this.activeCategory;
             chip.style.cssText = `
-                padding: 2px 10px; background: ${isActive ? 'var(--gpm-primary)' : 'rgba(255,255,255,0.06)'};
+                padding: 2px 10px; background: ${isActive ? 'var(--gpm-primary)' : 'rgba(255,255,255,0.1)'};
                 border-radius: 12px; font-size: 11px; cursor: pointer; white-space: nowrap;
-                border: 1px solid ${isActive ? 'rgba(255,255,255,0.1)' : 'transparent'};
-                transition: all 0.2s;
             `;
             chip.onclick = () => {
                 this.activeCategory = cat;
@@ -272,76 +245,42 @@ export class SidePanel extends Component {
             );
         }
 
-        if (filtered.length === 0) {
-            container.innerHTML = '<div style="text-align:center; padding:20px; opacity:0.5; font-size:12px;">无结果</div>';
-            return;
-        }
-
         filtered.forEach(p => {
             const el = document.createElement('div');
-            el.className = 'prompt-card';
             el.style.cssText = `
-                padding: 10px; background: rgba(255,255,255,0.04); border-radius: 8px;
-                border: 1px solid rgba(255,255,255,0.05); cursor: pointer; transition: all 0.2s;
+                padding: 8px; background: rgba(255,255,255,0.05); border-radius: 6px;
+                margin-bottom: 6px; cursor: pointer; border: 1px solid transparent;
             `;
-
-            const highlight = (text) => {
-                if (!this.filterText) return text;
-                const reg = new RegExp(`(${this.filterText})`, 'gi');
-                return text.replace(reg, '<span class="highlight">$1</span>');
-            };
-
             el.innerHTML = `
-                <div style="font-weight: bold; font-size: 13px; margin-bottom: 4px; color: #eee;">${highlight(p.name || 'Untitled')}</div>
-                <div style="font-size: 11px; opacity: 0.5; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                    ${highlight((p.content || '').slice(0, 60))}
+                <div style="font-weight: bold; font-size: 13px;">${p.name || 'Untitled'}</div>
+                <div style="font-size: 11px; opacity: 0.6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    ${(p.content || '').slice(0, 50)}
                 </div>
             `;
-
-            el.onmouseenter = () => el.style.background = 'rgba(255,255,255,0.08)';
-            el.onmouseleave = () => el.style.background = 'rgba(255,255,255,0.04)';
-
             el.onclick = (e) => {
                 const isReplace = this.clickMode === 'replace' || e.shiftKey;
-
-                // ✨ 模板引擎集成
-                TemplateEngine.resolve(p.content, (finalText) => {
-                    this.input.insert(finalText, isReplace);
-                });
+                this.input.insert(p.content, isReplace);
             };
-
             container.appendChild(el);
         });
     }
 
-    notifyStateChange() {
+    saveState() {
         const panel = this.shadow.querySelector('.side-panel');
-        if (this.config.onStateChange) {
-            this.config.onStateChange({
-                visible: panel.style.display !== 'none',
-                left: parseFloat(panel.style.left),
-                top: parseFloat(panel.style.top),
-                width: parseFloat(panel.style.width),
-                height: parseFloat(panel.style.height)
-            });
-        }
+        const state = {
+            visible: panel.style.display !== 'none',
+            left: parseFloat(panel.style.left),
+            top: parseFloat(panel.style.top),
+            width: parseFloat(panel.style.width),
+            height: parseFloat(panel.style.height)
+        };
+        // 保存到 storage
     }
 
-    show() {
-        this.shadow.querySelector('.side-panel').style.display = 'flex';
-        this.visible = true;
-        this.notifyStateChange();
-    }
-
-    hide() {
-        this.shadow.querySelector('.side-panel').style.display = 'none';
-        this.visible = false;
-        this.notifyStateChange();
-    }
-
+    show() { this.shadow.querySelector('.side-panel').style.display = 'flex'; }
+    hide() { this.shadow.querySelector('.side-panel').style.display = 'none'; }
     toggle() {
         const panel = this.shadow.querySelector('.side-panel');
-        const isHidden = panel.style.display === 'none';
-        isHidden ? this.show() : this.hide();
+        panel.style.display = panel.style.display === 'none' ? 'flex' : 'none';
     }
 }

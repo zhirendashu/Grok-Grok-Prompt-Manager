@@ -1,63 +1,172 @@
 /**
- * 💾 StorageService: Industrial Data Persistence
- * 基于 @loki-mode 企业级标准，引入事件驱动总线。
+ * 💾 StorageService (IDB Edition): 工业级异步持久化存储
+ * 职责：
+ * 1. 优先使用 IndexedDB 处理大规模提示词库（消除 JSON 序列化性能瓶颈）。
+ * 2. GM_setValue + LocalStorage 作为配置与轻量级同步备份。
+ * 3. 完整支持从 v5.0.5 (Legacy JSON) 到 v6.0 (IDB) 的平滑数据迁移。
  */
-import { UI_THEME } from '../style/Theme.js';
-
 export class StorageService {
-    constructor(dbKey, fallbackKey) {
-        this.DB_KEY = dbKey;
-        this.FALLBACK_KEY = fallbackKey;
+    constructor(dbName = 'GPM_Hyperion_V6', storeName = 'PromptLibraries') {
+        this.DB_NAME = dbName;
+        this.STORE_NAME = storeName;
         this.listeners = [];
-        this.data = this.load();
+        this.db = null;
+        this.data = null; // 内存缓存
+        this.isReady = false;
     }
 
-    // 订阅数据变化
-    subscribe(callback) {
-        this.listeners.push(callback);
+    /**
+     * 初始化数据库并尝试迁移旧数据
+     */
+    async init() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open(this.DB_NAME, 1);
+
+            request.onupgradeneeded = (e) => {
+                const db = e.target.result;
+                if (!db.objectStoreNames.contains(this.STORE_NAME)) {
+                    db.createObjectStore(this.STORE_NAME, { keyPath: 'id' });
+                }
+            };
+
+            request.onsuccess = async (e) => {
+                this.db = e.target.result;
+                await this.loadInitialData();
+                this.isReady = true;
+                this.notify();
+                resolve();
+            };
+
+            request.onerror = (e) => reject(new Error('IndexedDB Open Failed'));
+        });
     }
 
-    notify() {
-        this.listeners.forEach(cb => cb(this.data));
-    }
+    async loadInitialData() {
+        // 1. 尝试从 IDB 获取所有库
+        const libs = await this.getAllFromIDB();
 
-    load() {
-        // 实现 v5.0.5 中经过验证的 GM + LocalStorage 双重镜像逻辑
-        let raw = GM_getValue(this.DB_KEY, null);
-        if (!raw) {
-            raw = localStorage.getItem(this.FALLBACK_KEY);
-            if (raw) GM_setValue(this.DB_KEY, raw);
+        // 2. 如果 IDB 为空，尝试从 Legacy (GM/LS) 迁移
+        if (libs.length === 0) {
+            await this.migrateFromLegacy();
+        } else {
+            // 从配置中恢复活跃库状态
+            const settings = this.getSettingsFromLegacy();
+            this.data = {
+                libraries: libs,
+                settings: settings,
+                activeLibraryId: settings.activeLibraryId || libs[0].id
+            };
         }
+    }
+
+    async migrateFromLegacy() {
+        console.log('🔄 [GPM Storage] Detecting Legacy Data (v5.x)...');
+        let legacyRaw = typeof GM_getValue !== 'undefined' ? GM_getValue('GPM_DATA_V5', null) : null;
+        if (!legacyRaw) legacyRaw = localStorage.getItem('GPM_V6_MIRROR') || localStorage.getItem('GPM_DATA_V5');
 
         try {
-            return raw ? JSON.parse(raw) : this.defaultSchema();
+            const legacyData = legacyRaw ? JSON.parse(legacyRaw) : this.defaultSchema();
+            // 将迁移后的每个库写入 IDB
+            for (const lib of (legacyData.libraries || [])) {
+                await this.saveToIDB(lib);
+            }
+            this.data = legacyData;
+            console.log('✅ [GPM Storage] Migration Complete.');
         } catch (e) {
-            console.error('[GPM v6] Data corruption detected, using default.');
-            return this.defaultSchema();
+            this.data = this.defaultSchema();
         }
     }
 
-    save(newData) {
-        this.data = newData || this.data;
-        const json = JSON.stringify(this.data);
+    // --- IDB 核心操作 (异步) ---
 
-        // 性能防护：大数据量监测
-        if (json.length > 4.5 * 1024 * 1024) {
-            console.warn('[GPM v6] Storage quota warning (>4.5MB)');
+    async getAllFromIDB() {
+        return new Promise((resolve) => {
+            const transaction = this.db.transaction([this.STORE_NAME], 'readonly');
+            const store = transaction.objectStore(this.STORE_NAME);
+            const request = store.getAll();
+            request.onsuccess = () => resolve(request.result || []);
+        });
+    }
+
+    async saveToIDB(library) {
+        return new Promise((resolve) => {
+            const transaction = this.db.transaction([this.STORE_NAME], 'readwrite');
+            const store = transaction.objectStore(this.STORE_NAME);
+            store.put(library);
+            transaction.oncomplete = () => resolve();
+        });
+    }
+
+    async removeFromIDB(id) {
+        return new Promise((resolve) => {
+            const transaction = this.db.transaction([this.STORE_NAME], 'readwrite');
+            const store = transaction.objectStore(this.STORE_NAME);
+            store.delete(id);
+            transaction.oncomplete = () => resolve();
+        });
+    }
+
+    // --- 业务层交互 (同步缓存 + 异步刷盘) ---
+
+    subscribe(callback) { this.listeners.push(callback); }
+    notify() { this.listeners.forEach(cb => cb(this.data)); }
+
+    getLibraries() { return this.data?.libraries || []; }
+
+    getCurrentLibrary() {
+        const libs = this.getLibraries();
+        const activeId = this.data?.activeLibraryId || 'default';
+        return libs.find(l => l.id === activeId) || libs[0];
+    }
+
+    async switchLibrary(id) {
+        if (this.data) {
+            this.data.activeLibraryId = id;
+            this.saveSettingsToLegacy(); // 配置存配置库
+            this.notify();
         }
+    }
 
-        GM_setValue(this.DB_KEY, json);
-        localStorage.setItem(this.FALLBACK_KEY, json);
-        this.notify(); // 数据变动，全线拉响战斗警报
-        return true;
+    async saveLibrary(lib) {
+        await this.saveToIDB(lib);
+        const idx = this.data.libraries.findIndex(l => l.id === lib.id);
+        if (idx !== -1) this.data.libraries[idx] = lib;
+        else this.data.libraries.push(lib);
+        this.notify();
+    }
+
+    // --- 配置层持久化 (GM/LS) ---
+
+    getSettingsFromLegacy() {
+        const raw = typeof GM_getValue !== 'undefined' ? GM_getValue('GPM_V6_SETTINGS', null) : null;
+        try {
+            return raw ? JSON.parse(raw) : this.defaultSchema().settings;
+        } catch(e) { return this.defaultSchema().settings; }
+    }
+
+    saveSettingsToLegacy() {
+        const settings = {
+            settings: this.data.settings,
+            activeLibraryId: this.data.activeLibraryId
+        };
+        const json = JSON.stringify(settings);
+        if (typeof GM_setValue !== 'undefined') GM_setValue('GPM_V6_SETTINGS', json);
+        localStorage.setItem('GPM_V6_SETTINGS_MIRROR', json);
     }
 
     defaultSchema() {
         return {
-            version: '6.0.0',
-            settings: { theme: 'dark', panels: { left: { visible: false }, right: { visible: false } } },
-            libraries: [{ id: 'default', name: '📚 默认库', prompts: [] }],
-            activeTextLibraryId: 'default'
+            activeLibraryId: 'default',
+            settings: {
+                theme: 'dark',
+                panels: {
+                    left: { visible: true, width: 380, height: 700, top: 100, left: 20 },
+                    right: { visible: false, width: 380, height: 700, top: 100, right: 20 }
+                }
+            },
+            libraries: [
+                { id: 'default', name: '📚 默认提示词库', prompts: [], pinned: true }
+            ]
         };
     }
 }

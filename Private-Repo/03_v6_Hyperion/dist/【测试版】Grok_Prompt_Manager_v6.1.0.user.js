@@ -1,9 +1,9 @@
 // ==UserScript==
-// @name         【海伯利安】Grok Prompt Manager v6.0.0 (Hyperion)
-// @name:zh-CN   Grok Prompt Manager v6.0.0 (Hyperion) | 植人大树出品
+// @name         【海伯利安】Grok Prompt Manager v6.1.0 (Hyperion)
+// @name:zh-CN   Grok Prompt Manager v6.1.0 (Hyperion) | 植人大树出品
 // @namespace    http://tampermonkey.net/
-// @version      6.0.0
-// @description  GPM v6.0 代号：Hyperion | 工业级架构重构版 | 一站式 AGI 生产力套件
+// @version      6.1.0
+// @description  GPM v6.1.0 代号：Hyperion | 工业级架构重构版 | 一站式 AGI 生产力套件
 // @author       植人大树
 // @match        https://grok.com/*
 // @match        https://x.com/*
@@ -32,7 +32,48 @@
 /**
  * 📜 Changelog
  *
- * v5.0.5 (2026-01-27):
+ * v6.1.0 (2026-01-29):
+ * - **逻辑链修复**: 修复了由于变量名不匹配导致高清图标点击无法触发布控逻辑的隐蔽 Bug。
+ * - **全局绑定**: 正确挂载 `upscaleManager` 到全局窗口，确保 UI 状态切换与逻辑引擎同步。
+ *
+ * v6.0.9 (2026-01-28):
+ * - **双塔物理切换**: 采用独立的红/绿源码图标进行 InnerHTML 强更，彻底根除变色失效问题。
+ * - **逻辑重连**: 修复了上个版本中因代码段匹配失败导致高清点击失效的隐蔽 Bug。
+ *
+ * v6.0.8 (2026-01-28):
+ * - **物理级修复**: 在图标源码层级锁定红/绿色彩。彻底解决高清模块点击后图标不换色的“死穴”。
+ * - **兼容性重写**: 弃用 CSS 类逻辑，回归最高级别的硬编码切换，确保任何系统下视觉 100% 对齐。
+ *
+ * v6.0.7 (2026-01-28):
+ * - **终极修复**: 采用 CSS 类驱动机制重写“自动高清”图标变色逻辑，彻底解决点击后不换色的 BUG。
+ * - **反馈增强**: 视觉状态切换响应速度提升，红/绿语义更加鲜明且不可被覆盖。
+ *
+ * v6.0.6 (2026-01-28):
+ * - **UI 深度修复**: 解决“高清模块”点击后图标颜色不跟随状态切换的视觉 Bug。
+ * - **反馈对齐**: 参考预览模式，实现红/绿双态像素级实时反馈。
+ *
+ * v6.0.5 (2026-01-28):
+ * - **品牌化文案**: 移除平庸的中英对照，升级为文艺感核心词：图片面板 -> “映 画”，视频面板 -> “视 阈”。
+ * - **UI 气质**: 提升整体视觉的高级感与排版美感。
+ *
+ * v6.0.4 (2026-01-28):
+ * - **视觉对齐**: 规范“自动高清”模块色彩语义。开启显示绿色 HD+状态点，关闭显示红色 HD+禁用斜杠。
+ * - **交互细节**: 点击高清按钮时，图标会实时通过颜色反馈状态切换。
+ *
+ * v6.0.3 (2026-01-28):
+ * - **完美修复**: 彻底解决“自动高清”模块无法切换的 Bug。恢复了 UI 控制权与逻辑链路。
+ * - **状态同步**: 高清图标现在支持绿/红双态实时切换，直观展示后台扫描状态。
+ *
+ * v6.0.2 (2026-01-28):
+ * - **视觉增强**: 重塑“自动高清”图标。将原本难以识别的胶片图标更换为直观的“HD”专用矢量图标。
+ * - **UI 细节**: 优化侧边栏底部操作区图标的对齐逻辑。
+ *
+ * v6.0.1 (2026-01-28):
+ * - **视觉优化**: 全面移除 UI 界面中的 Emoji 图标，替换为精致的 SVG 矢量图标。
+ * - **图标语义**: 修正“自动重试”图标。将不相关的五角星更换为符合语义的“循环时钟”图标。
+ * - **规范化**: 确立小版本连续升级机制。
+ *
+ * v6.0.0 (2026-01-27):
  * - **架构重构**: InputManager 全面切为原生指令驱动 (document.execCommand)，彻底解决光标跳动与状态丢失。
  * - **UI 2.0**: Prompt Inspector 引入 SVG 矢量图标与毛玻璃动效，视觉体验大幅提升。
  * - **健壮性**: 移除语言依赖的选择器，实现跨语言环境的高效定位。
@@ -293,7 +334,6 @@
     // User can replace these SVG strings to customize icons.
     // User can replace these SVG strings to customize icons.
     const ICON_SET = {
-        // --- 🎲 骰子 (Random) - 5点骰子 ---
         Dice: `<svg class="gpm-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
             <rect x="3" y="3" width="18" height="18" rx="3"></rect>
             <circle cx="8" cy="8" r="1.2" fill="currentColor"></circle>
@@ -302,87 +342,53 @@
             <circle cx="8" cy="16" r="1.2" fill="currentColor"></circle>
             <circle cx="16" cy="16" r="1.2" fill="currentColor"></circle>
         </svg>`,
-
-        // --- 📺 HD Upscale (Film Strip Mode) ---
-        HD: `<svg class="gpm-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="4" y="6" width="16" height="12" rx="2"></rect>
-            <rect x="5" y="8" width="2" height="1.5" rx="0.5"></rect>
-            <rect x="5" y="14.5" width="2" height="1.5" rx="0.5"></rect>
-            <rect x="17" y="8" width="2" height="1.5" rx="0.5"></rect>
-            <rect x="17" y="14.5" width="2" height="1.5" rx="0.5"></rect>
-            <line x1="4" y1="10" x2="20" y2="10"></line>
-            <line x1="4" y1="14" x2="20" y2="14"></line>
-        </svg>`,
-        HD_ON: `<svg class="gpm-svg-icon" viewBox="0 0 24 24" fill="none" stroke="#00ba7c" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="4" y="6" width="16" height="12" rx="2"></rect>
-            <circle cx="12" cy="12" r="2" fill="#00ba7c" opacity="0.3"></circle>
-            <line x1="4" y1="10" x2="20" y2="10"></line>
-            <line x1="4" y1="14" x2="20" y2="14"></line>
-        </svg>`,
-        HD_OFF: `<svg class="gpm-svg-icon" viewBox="0 0 24 24" fill="none" stroke="#ff4d4f" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="4" y="6" width="16" height="12" rx="2"></rect>
-            <line x1="4" y1="10" x2="20" y2="10"></line>
-            <line x1="4" y1="14" x2="20" y2="14"></line>
-            <line x1="3" y1="3" x2="21" y2="21" stroke="#ff4d4f" stroke-width="2" opacity="0.8"></line>
-        </svg>`,
-
-        // --- 📸 光圈 (Aperture) - 六边形光圈 ---
+        HD: `<svg class="gpm-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7v10M10 7v10M4 12h6M14 7v10a4 4 0 0 0 4-4v-2a4 4 0 0 0-4-4z"></path></svg>`,
+        HD_ON: `<svg class="gpm-svg-icon" viewBox="0 0 24 24" fill="none" stroke="#00ba7c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:#00ba7c !important;"><path d="M4 7v10M10 7v10M4 12h6M14 7v10a4 4 0 0 0 4-4v-2a4 4 0 0 0-4-4z"></path><circle cx="21" cy="7" r="2.5" fill="#00ba7c" style="fill:#00ba7c !important;"></circle></svg>`,
+        HD_OFF: `<svg class="gpm-svg-icon" viewBox="0 0 24 24" fill="none" stroke="#ff4d4f" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" style="color:#ff4d4f !important;"><path d="M4 7v10M10 7v10M4 12h6M14 7v10a4 4 0 0 0 4-4v-2a4 4 0 0 0-4-4z"></path><line x1="2" y1="2" x2="22" y2="22" style="stroke-width:2.5; stroke:#ff4d4f !important;"></line></svg>`,
         AddLib: `<svg class="gpm-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 2L19 6.5V17.5L12 22L5 17.5V6.5L12 2Z"></path>
             <path d="M12 8L16 10.5V15.5L12 18L8 15.5V10.5L12 8Z"></path>
         </svg>`,
-
-        // --- ❤️ 心形 (Heart) - 简洁心形 ---
-        // --- ❤️ 心形 (Heart) -> 🗑️ 垃圾桶 (Trash) ---
         DelLib: `<svg class="gpm-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="3 6 5 6 21 6"></polyline>
             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
             <line x1="10" y1="11" x2="10" y2="17"></line>
             <line x1="14" y1="11" x2="14" y2="17"></line>
         </svg>`,
-
-        // --- 💾 导入 (Import) - 简洁箭头 ---
         Import: `<svg class="gpm-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="7 10 12 15 17 10"></polyline>
             <line x1="12" y1="15" x2="12" y2="3"></line>
             <path d="M20 16v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-4"></path>
         </svg>`,
-
-        // --- 📤 导出 (Export) - 简洁箭头 ---
         Export: `<svg class="gpm-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="17 8 12 3 7 8"></polyline>
             <line x1="12" y1="3" x2="12" y2="15"></line>
             <path d="M20 16v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-4"></path>
         </svg>`,
-
-        // --- 📦 备份 (Backup) - 简洁盒子 ---
         Backup: `<svg class="gpm-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
             <rect x="3" y="3" width="18" height="18" rx="2"></rect>
             <line x1="3" y1="9" x2="21" y2="9"></line>
             <line x1="9" y1="14" x2="15" y2="14"></line>
         </svg>`,
-
-        // --- 📝 草稿 (Draft) - 简洁文档 ---
         Draft: `<svg class="gpm-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
             <polyline points="14 2 14 8 20 8"></polyline>
         </svg>`,
-
-        // --- 🔨 Craft Tool (Paste) ---
         Paste: `<svg class="gpm-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
             <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
         </svg>`,
-
-        // Action Icons
         Sort: `<svg class="gpm-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="21" y1="10" x2="3" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="21" y1="18" x2="3" y2="18"></line></svg>`,
         AddPrompt: `<svg class="gpm-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`,
         PreviewToggle: `<svg class="gpm-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`,
-
-        // Window Control
         Minimize: `<svg class="gpm-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>`,
-        AiAssist: `<svg class="gpm-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg>`,
-        Menu: `<svg class="gpm-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>`
+        AiAssist: `<svg class="gpm-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path><polyline points="21 3 21 8 16 8"></polyline><path d="M12 7v5l3 3"></path></svg>`,
+        Menu: `<svg class="gpm-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>`,
+        Pin: `<svg class="gpm-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 6a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v9l3 3v2h-7v5l-1 1-1-1v-5H4v-2l3-3V6Z" fill="currentColor"></path></svg>`,
+        Edit: `<svg class="gpm-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>`,
+        Trash: `<svg class="gpm-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`,
+        Close: `<svg class="gpm-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`,
+        ArrowDown: `<svg class="gpm-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>`
     };
 
     // --- ICONS (Base64) ---
@@ -1067,6 +1073,10 @@
                     animation: gpm-breathe 2s infinite ease-in-out;
                     color: var(--gpm-primary);
                 }
+
+                /* HD Toggle States */
+                .hd-on { color: #00ba7c !important; }
+                .hd-off { color: #ff4d4f !important; }
             `;
             // Store for Shadow DOMs
             this.themeCSS = css;
@@ -1333,9 +1343,8 @@
      */
     class GrokAutoUpscale {
         constructor() {
-            // 强制默认开启（与 UI 按钮初始化保持一致）
-            GM_setValue('auto_upscale_enabled', true);
-            this.enabled = true;
+            // ✨ 修复：从存储中读取，不再强制 true
+            this.enabled = GM_getValue('auto_upscale_enabled', true);
             this.silent = true; // Default Silent Mode
             this.processedVideos = new Set(); // Stores video srcs
             this.completedPosts = new Set(); // Stores post IDs
@@ -1644,9 +1653,9 @@
                         display: flex; flex-direction: column; gap: 8px; cursor: move;
                     ">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <span style="font-weight: bold;">${isLeft ? '图片 (Image)' : '视频 (Video)'}</span>
+                            <span style="font-weight: 800; font-size: 15px; letter-spacing: 2px; color: rgba(255,255,255,0.9);">${isLeft ? '映 画' : '视 阈'}</span>
                             <div style="display: flex; gap: 5px;">
-                                <button class="gpm-btn auto-hide-btn" title="自动隐藏 (Auto-Hide)" style="font-size: 14px;">📌</button>
+                                <button class="gpm-btn auto-hide-btn" title="自动隐藏 (Auto-Hide)">${ICON_SET.Pin}</button>
                                 <button class="gpm-btn min-btn">${ICON_SET.Minimize}</button>
                             </div>
                         </div>
@@ -1662,12 +1671,12 @@
                                 background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
                                 transition: all 0.2s; overflow: hidden; height: 32px;
                             ">
-                                <span class="current-lib-name" style="
+                                 <span class="current-lib-name" style="
                                     font-weight: 600; font-size: 14px; white-space: nowrap;
                                     overflow: hidden; text-overflow: ellipsis; color: #fff;
-                                ">Loading...</span>
-                                <span style="font-size: 10px; opacity: 0.6; margin-top: 2px;">▼</span>
-                            </div>
+                                 ">Loading...</span>
+                                 <span style="display: flex; align-items: center; opacity: 0.5; width: 12px; height: 12px;">${ICON_SET.ArrowDown}</span>
+                             </div>
 
                             <!-- Right: Fixed Action Buttons -->
                             <div class="lib-actions-fixed" style="display: flex; gap: 4px; flex-shrink: 0;">
@@ -1683,11 +1692,11 @@
 
                         <!-- Toolbar Row 2: Actions -->
                         <div class="action-row" style="display: flex; gap: 6px; align-items: center; justify-content: space-between;">
-                            <button class="gpm-btn import-btn" style="flex: 1;" title="导入 (Import)">${ICON_SET.Import}</button>
-                            <button class="gpm-btn paste-import-btn" style="flex: 1;" title="粘贴导入 (Paste)">${ICON_SET.Paste}</button>
-                            <button class="gpm-btn export-btn" style="flex: 1;" title="导出 (Export)">${ICON_SET.Export}</button>
-                            <button class="gpm-btn backup-btn" style="flex: 1;" title="备份 (Backup)">${ICON_SET.Backup}</button>
-                            <button class="gpm-btn draft-btn" style="flex: 1;" title="草稿 (Draft)">${ICON_SET.Draft}</button>
+                            <button class="gpm-btn import-btn" style="flex: 1; padding: 6px;" title="导入 (Import)">${ICON_SET.Import}</button>
+                            <button class="gpm-btn paste-import-btn" style="flex: 1; padding: 6px;" title="粘贴导入 (Paste)">${ICON_SET.Paste}</button>
+                            <button class="gpm-btn export-btn" style="flex: 1; padding: 6px;" title="导出 (Export)">${ICON_SET.Export}</button>
+                            <button class="gpm-btn backup-btn" style="flex: 1; padding: 6px;" title="备份 (Backup)">${ICON_SET.Backup}</button>
+                            <button class="gpm-btn draft-btn" style="flex: 1; padding: 6px;" title="草稿 (Draft)">${ICON_SET.Draft}</button>
                         </div>
                     </div>
 
@@ -1710,7 +1719,7 @@
                     ">
                     <button class="gpm-btn sort-btn" title="切换排序 (Sort)">${ICON_SET.Sort}</button>
                     <button class="gpm-btn add-prompt-btn" title="添加提示词 (Add Prompt)">${ICON_SET.AddPrompt}</button>
-                    ${!isLeft ? `<button class="gpm-btn hd-indicator" title="自动高清: 已开启 (Auto Upscale: Always ON)" style="width: 30px; cursor: default; opacity: 0.8;">${ICON_SET.HD_ON}</button>` : ''}
+                    ${!isLeft ? `<button class="gpm-btn hd-toggle-btn" title="自动高清 (Auto Upscale)" style="width: 30px;">${GM_getValue('auto_upscale_enabled', true) ? ICON_SET.HD_ON : ICON_SET.HD_OFF}</button>` : ''}
                 </div>
 
                 <!-- Mode & Import/Export Row -->
@@ -1785,11 +1794,24 @@
                 };
             });
 
-            // HD 功能指示器（常驻开启，不可切换）
-            const hdIndicator = this.shadow.querySelector('.hd-indicator');
-            if (hdIndicator) {
-                // 添加呼吸动画效果，表示功能正在运行
-                hdIndicator.style.animation = 'gpm-breathe 3s infinite ease-in-out';
+            // ✨ 核心修复：绑定高清模块切换逻辑
+            const hdBtn = this.shadow.querySelector('.hd-toggle-btn');
+            if (hdBtn && window.upscaleManager) {
+                const updateHdUI = (enabled) => {
+                    hdBtn.innerHTML = enabled ? ICON_SET.HD_ON : ICON_SET.HD_OFF;
+                    hdBtn.style.animation = enabled ? 'gpm-breathe 3s infinite ease-in-out' : 'none';
+                    hdBtn.title = `自动高清: ${enabled ? '开启' : '关闭'}`;
+                    // ✨ 强制物理纠色
+                    hdBtn.style.color = enabled ? '#00ba7c' : '#ff4d4f';
+                };
+
+                // 初始化 UI 状态 (使用管理器的真实状态)
+                updateHdUI(window.upscaleManager.enabled);
+
+                hdBtn.onclick = () => {
+                    const newState = window.upscaleManager.toggle();
+                    updateHdUI(newState);
+                };
             }
 
 
@@ -2693,22 +2715,20 @@
                                 background: transparent;
                                 border: none;
                                 cursor: pointer;
-                                padding: 4px;
-                                font-size: 14px;
+                                padding: 4px; border-radius: 4px;
                                 color: ${lib.pinned ? '#1d9bf0' : 'rgba(255,255,255,0.25)'};
                                 opacity: ${lib.pinned ? '1' : '0.5'};
                                 transition: all 0.2s;
-                             ">📌</button>
+                             ">${ICON_SET.Pin}</button>
                             <button class="rename-btn" title="重命名" style="
                                 background: transparent;
                                 border: none;
                                 cursor: pointer;
-                                padding: 4px;
-                                font-size: 13px;
+                                padding: 4px; border-radius: 4px;
                                 color: rgba(255,255,255,0.3);
                                 opacity: 0.5;
                                 transition: all 0.2s;
-                            ">✏️</button>
+                            ">${ICON_SET.Edit}</button>
                         </div>
                     `;
 
@@ -3174,23 +3194,23 @@
             const expandBtn = container.querySelector('.gpm-cat-expand');
 
             // Helper to create small action buttons (Shared style)
-            const createTinyBtn = (text, title, onClickHandler) => {
+            const createTinyBtn = (html, title, onClickHandler) => {
                 const btn = document.createElement('button');
                 btn.className = 'gpm-btn';
-                btn.textContent = text;
+                btn.innerHTML = html;
                 btn.title = title;
-                btn.style.cssText = 'min-width: 24px; padding: 0 4px; font-size: 10px; height: 20px;';
+                btn.style.cssText = 'min-width: 24px; padding: 0 4px; font-size: 10px; height: 20px; display: flex; align-items: center; justify-content: center;';
                 btn.onclick = onClickHandler;
                 return btn;
             };
 
             // Import Button
             if (this.onImportCategory) {
-                scrollContainer.appendChild(createTinyBtn('📥', '导入分类 (Import to Category)', this.onImportCategory));
+                scrollContainer.appendChild(createTinyBtn(ICON_SET.Import, '导入分类 (Import to Category)', this.onImportCategory));
             }
             // Export Button
             if (this.onExportCategory) {
-                scrollContainer.appendChild(createTinyBtn('📤', '导出分类 (Export Category)', this.onExportCategory));
+                scrollContainer.appendChild(createTinyBtn(ICON_SET.Export, '导出分类 (Export Category)', this.onExportCategory));
             }
             // Add Button
             if (this.onAddCategory) {
@@ -3673,23 +3693,23 @@
             const expandBtn = container.querySelector('.gpm-mod-expand');
 
             // Helper to create small action buttons
-            const createTinyBtn = (text, title, onClickHandler) => {
+            const createTinyBtn = (html, title, onClickHandler) => {
                 const btn = document.createElement('button');
                 btn.className = 'gpm-btn';
-                btn.textContent = text;
+                btn.innerHTML = html;
                 btn.title = title;
-                btn.style.cssText = 'min-width: 24px; padding: 0 4px; font-size: 10px; height: 20px;';
+                btn.style.cssText = 'min-width: 24px; padding: 0 4px; font-size: 10px; height: 20px; display: flex; align-items: center; justify-content: center;';
                 btn.onclick = onClickHandler;
                 return btn;
             };
 
             // Import Button
             if (onImport) {
-                scrollContainer.appendChild(createTinyBtn('📥', '导入标签 (Import Tags)', onImport));
+                scrollContainer.appendChild(createTinyBtn(ICON_SET.Import, '导入标签 (Import Tags)', onImport));
             }
             // Export Button
             if (onExport) {
-                scrollContainer.appendChild(createTinyBtn('📤', '导出标签 (Export Tags)', onExport));
+                scrollContainer.appendChild(createTinyBtn(ICON_SET.Export, '导出标签 (Export Tags)', onExport));
             }
 
             // Add Button
@@ -4605,6 +4625,10 @@ Breast squeeze, pressing breasts together"></textarea>
             this.updatePanel();
         }
 
+        hide() {
+            if (this.panel) this.panel.style.display = 'none';
+        }
+
         togglePanel(anchorElement) {
             if (!this.panel) this.createPanel();
 
@@ -4940,6 +4964,10 @@ Breast squeeze, pressing breasts together"></textarea>
             this.inputManager = new InputManager();
             this.autoRetryManager = new AutoRetryManager();
             this.autoUpscale = new GrokAutoUpscale(); // 📺 Auto Upscale
+
+            // ✨ CRITICAL: Expose to global for SidePanel UI binding
+            window.upscaleManager = this.autoUpscale;
+
             this.init();
         }
 
@@ -6255,6 +6283,7 @@ Breast squeeze, pressing breasts together"></textarea>
                         this.leftPanel.hide();
                         this.rightPanel.hide();
                         this.bottomPanel.hide();
+                        this.autoRetryManager.hide(); // ✨ 联动隐藏自动重试面板
                     } else {
                         // User Request: Only expand side panels, keep bottom panel closed (manual trigger only)
                         this.leftPanel.show();
