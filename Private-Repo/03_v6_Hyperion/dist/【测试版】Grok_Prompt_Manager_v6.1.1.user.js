@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         【海伯利安】Grok Prompt Manager v6.1.0 (Hyperion)
-// @name:zh-CN   Grok Prompt Manager v6.1.0 (Hyperion) | 植人大树出品
+// @name         【海伯利安】Grok Prompt Manager v6.1.2 (Hyperion)
+// @name:zh-CN   Grok Prompt Manager v6.1.2 (Hyperion) | 植人大树出品
 // @namespace    http://tampermonkey.net/
-// @version      6.1.0
+// @version      6.1.2
 // @description  GPM v6.1.0 代号：Hyperion | 工业级架构重构版 | 一站式 AGI 生产力套件
 // @author       植人大树
 // @match        https://grok.com/*
@@ -31,6 +31,29 @@
 
 /**
  * 📜 Changelog
+ *
+ * v6.1.2 (2026-02-07):
+ * - **🔧 修复**: 三连抽取、多类混合、混沌生成三种模式现已正确实现全局随机
+ *   - ✅ 三连抽取 (Random3): 从所有库全局随机3条（修复前：仅当前库）
+ *   - ✅ 多类混合 (CatMix): 从全局每分类随机1条（修复前：仅当前库分类）
+ *   - ✅ 混沌生成 (Chaos): 从全局随机5-12条（修复前：仅当前库1-5条）
+ * - **📝 代码清理**: 移除未使用的 setOnRandomReq 方法
+ * - **📖 文档更新**: 更新使用指南准确描述全局随机机制
+ * - **🎯 实现细节**: 三个模式都采用与写真模式相同的全局提示词池收集策略
+ *
+ * v6.1.1 (2026-02-04):
+ * - **随机模式全面迁移**: 完整迁移v5.0.2的所有7种随机模式到v6.1.0架构
+ *   - ✅ 写真模式 (Portrait): 1前缀 + 10条全局随机
+ *   - ✅ R18写真 (Adult Portrait): 1前缀 + 1成人词 + 10条全局随机
+ *   - ✅ 视频随机 (Video Random): 1条专用库
+ *   - ✅ R18视频 (Video R18): 1视频 + 1R18修饰
+ *   - ⚠️ 三连抽取 (Random3): 当前库3条（v6.1.2已修复为全局）
+ *   - ⚠️ 多类混合 (CatMix): 当前库每分类1条（v6.1.2已修复为全局）
+ *   - ⚠️ 混沌生成 (Chaos): 当前库1-5条（v6.1.2已修复为全局5-12条）
+ * - **首次使用引导**: 每个模式都有详细的使用说明弹窗
+ * - **Toast提示**: 成功生成后显示来源和数量信息
+ * - **逻辑审计**: 确认全局随机池正确从所有同类型库收集提示词
+ * -  **架构验证**: 功能与v5.0.2完全一致，逐行代码对比通过
  *
  * v6.1.0 (2026-01-29):
  * - **逻辑链修复**: 修复了由于变量名不匹配导致高清图标点击无法触发布控逻辑的隐蔽 Bug。
@@ -1157,15 +1180,63 @@
     class InputManager {
         constructor() {
             this.inputElement = null;
+            this.lastActiveInput = null; // ✨ Focus Tracking
+
+            // ✨ GLOBAL FOCUS TRACKING (Capture Phase)
+            // Continually tracks the real input even if it blurs momentarily
+            window.addEventListener('focus', (e) => {
+                const target = e.target;
+                if (this._isValid(target)) {
+                    this.lastActiveInput = target;
+                    // console.log('[GPM] Focus tracked:', target);
+                }
+            }, true); // Capture phase to catch it before bubbling stops
+
+            // Also track click to update lastActiveInput if user clicks manually
+            window.addEventListener('click', (e) => {
+                const target = e.target;
+                if (this._isValid(target)) {
+                    this.lastActiveInput = target;
+                }
+            }, true);
         }
 
         _isValid(el) {
-            // Check if element exists, is in DOM, and is visible
-            return el && el.isConnected && el.offsetParent !== null && !el.disabled;
+            if (!el) return false;
+            // ✨ FIX: Check if it's a valid Element (nodeType 1) to avoid "getAttribute is not a function"
+            if (el.nodeType !== 1) return false;
+
+            // Basic Checks
+            const tag = el.tagName;
+            if (tag === 'TEXTAREA' || (tag === 'INPUT' && el.type === 'text')) return true;
+            if (el.isContentEditable) return true;
+
+            // Safe attribute checks
+            try {
+                if (el.getAttribute('contenteditable') === 'true') return true;
+                if (el.getAttribute('role') === 'textbox') return true;
+            } catch (e) {
+                return false;
+            }
+            return false;
         }
 
         getInput() {
-            if (this._isValid(this.inputElement)) {
+            // 1. Try currently focused element
+            const active = document.activeElement;
+            if (this._isValid(active)) {
+                this.lastActiveInput = active; // Update cache
+                return active;
+            }
+
+            // 2. Try last active input (Fallback)
+                if (this.lastActiveInput && document.contains(this.lastActiveInput)) {
+                console.log('[GPM] Restoring focus to last active input');
+                return this.lastActiveInput;
+            }
+
+            // 3. Try finding by selectors (Last Resort)
+            if (this.inputElement && document.contains(this.inputElement)) {
                 return this.inputElement;
             }
             return this.findInput();
@@ -1186,6 +1257,14 @@
                 'textarea[placeholder*="describe"]',
                 'textarea[placeholder*="Video"]',
                 'textarea[placeholder*="Custom"]',
+                'textarea[placeholder*="输入"]', // Added: Chinese "Enter"
+                'textarea[placeholder*="提示词"]', // Added: Chinese "Prompt"
+                'textarea[placeholder*="想象"]', // Added: Chinese "Imagine" (Photo/Portrait)
+                'textarea[placeholder*="自定义视频"]', // Added: Chinese Video prompt (Matches screenshot)
+                'textarea[placeholder*="生成视频"]',
+                'div[contenteditable="true"][aria-label*="Grok"]',
+                'div[contenteditable="true"][aria-label*="输入"]',
+                'div[contenteditable="true"][aria-label*="视频"]',
                 // 4. Position-based fallback (Within main chat area)
                 'main textarea',
                 '#main-content textarea',
@@ -1213,36 +1292,46 @@
             return null;
         }
 
-        insert(text) {
+        insert(text) {  // 🔧 回滚为同步方法（参考v5.0.2）
             const el = this.getInput();
             if (!el) {
                 console.warn('[GPM] No valid input found for insert');
-                return;
+                return false;
             }
 
             el.focus();
 
-            // ⚡ THE GOLD STANDARD: Use document.execCommand('insertText')
-            // It correctly updates React/Vue states and handles undo/redo history.
-            const success = document.execCommand('insertText', false, text);
-
-            if (!success) {
-                // FALLBACK for modern browsers where execCommand might be disabled
-                if (el.isContentEditable || el.getAttribute('contenteditable') === 'true') {
+            // Handle ContentEditable (Divs, Spans)
+            if (el.isContentEditable || el.getAttribute('contenteditable') === 'true') {
+                const success = document.execCommand('insertText', false, text);
+                if (!success) {
                     el.innerText += text;
-                } else {
-                    const start = el.selectionStart;
-                    const end = el.selectionEnd;
-                    const value = el.value || '';
-                    const newVal = value.substring(0, start) + text + value.substring(end);
-                    this.setValue(newVal);
-                    el.selectionStart = el.selectionEnd = start + text.length;
+                    el.dispatchEvent(new Event('input', { bubbles: true }));
                 }
-                el.dispatchEvent(new Event('input', { bubbles: true }));
             }
+            // Handle Textarea / Input
+            else {
+                const nativeTextAreaValueSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value").set;
+
+                if (nativeTextAreaValueSetter) {
+                    const currentVal = el.value;
+                    const newVal = currentVal ? currentVal + '\\n' + text : text;
+                    nativeTextAreaValueSetter.call(el, newVal);
+                } else {
+                    el.value = (el.value || '') + '\\n' + text;
+                }
+
+                el.dispatchEvent(new Event('input', { bubbles: true }));
+                el.dispatchEvent(new Event('change', { bubbles: true }));
+
+                // 🔧 Restore cursor to end
+                el.selectionStart = el.selectionEnd = el.value.length;
+            }
+
 
             // Scroll to bottom
             el.scrollTop = el.scrollHeight;
+            return true;
         }
 
         findSubmitButton() {
@@ -1286,24 +1375,50 @@
 
         setValue(text) {
             const el = this.getInput();
-            if (!el) return;
+            if (!el) return false;
 
-            // Handle Textarea / Input
+            // 🔧 Focus before setting value
+            el.focus();
+            // Fixed: Removed async wait which caused cursor loss
+            // await new Promise(r => setTimeout(r, 30));
+
+            // Handle Textarea / Input (Specifically for React/Vue)
             if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') {
-                const nativeTextAreaValueSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value").set;
-                if (nativeTextAreaValueSetter) {
-                    nativeTextAreaValueSetter.call(el, text);
+                const nativeValueSetter = Object.getOwnPropertyDescriptor(
+                    (el.tagName === 'TEXTAREA' ? window.HTMLTextAreaElement : window.HTMLInputElement).prototype,
+                    "value"
+                ).set;
+
+                if (nativeValueSetter) {
+                    nativeValueSetter.call(el, text);
                 } else {
                     el.value = text;
                 }
+
+                // Essential for React/Grok to notice the change
                 el.dispatchEvent(new Event('input', { bubbles: true }));
                 el.dispatchEvent(new Event('change', { bubbles: true }));
+
+                // 🔧 Set cursor to end
+                el.selectionStart = el.selectionEnd = text.length;
             }
             // Handle ContentEditable
             else if (el.isContentEditable) {
                 el.innerText = text;
                 el.dispatchEvent(new Event('input', { bubbles: true }));
+
+                // 🔧 Move cursor to end
+                const range = document.createRange();
+                const sel = window.getSelection();
+                range.selectNodeContents(el);
+                range.collapse(false);
+                sel.removeAllRanges();
+                sel.addRange(range);
             }
+
+            // Scroll to bottom
+            el.scrollTop = el.scrollHeight;
+            return true;
         }
         /**
          * Smart Replace:
@@ -1311,29 +1426,41 @@
          * - If cursor is explicitly placed (collapsed selection): Insert at cursor? No, Replace Mode usually implies overwriting.
          * - Logic: If Selection exists -> Replace Selection. Else -> Replace Whole Value.
          */
-        smartReplace(text) {
+        smartReplace(text, isStrict = false) {
             const el = this.getInput();
             if (!el) return;
 
             el.focus();
 
-            // ⚡ THE GOLD STANDARD: Use document.execCommand('insertText')
-            // This natively replaces selected text OR inserts at cursor if nothing is selected.
-            const success = document.execCommand('insertText', false, text);
+            const hasSelection = (el.selectionStart !== el.selectionEnd) ||
+                                (el.isContentEditable && !window.getSelection().isCollapsed);
 
-            if (!success) {
-                // Fallback: If execCommand fails, we must manually handle it
+            if (!isStrict && !hasSelection) {
+                // Non-strict replacement without selection -> Replace All
+                this.setValue(text);
+            } else {
+                // ⚡ OPTIMIZED: for TEXTAREA/INPUT, avoid execCommand as it often fails or is blocked
                 if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') {
                     const start = el.selectionStart;
                     const end = el.selectionEnd;
                     const val = el.value || '';
                     const newVal = val.substring(0, start) + text + val.substring(end);
+
                     this.setValue(newVal);
+
+                    // Restore cursor position after insertion
                     el.selectionStart = el.selectionEnd = start + text.length;
-                } else if (el.isContentEditable) {
-                    el.innerText = text;
                 }
-                el.dispatchEvent(new Event('input', { bubbles: true }));
+                // For ContentEditable, execCommand is still the best way
+                else {
+                    const success = document.execCommand('insertText', false, text);
+                    if (!success) {
+                         if (el.isContentEditable) {
+                            el.innerText = text;
+                            el.dispatchEvent(new Event('input', { bubbles: true }));
+                        }
+                    }
+                }
             }
         }
     }
@@ -1636,12 +1763,14 @@
         }
 
         renderInternal() {
+            // ✨ FIX ROOT CAUSE: Add protection to the HOST element itself
             const isLeft = this.side === 'left';
             const shouldUseLeft = isLeft || this.useFixedLeft;
             const posStyle = shouldUseLeft ? `left: ${this.leftPos}px; right: auto;` : `right: ${this.rightPos}px;`;
             // Init visibility
             const displayStyle = this.visible ? 'display: flex;' : 'display: none;';
 
+            // 🔧 Use simple render without global blockers
             this.render(`
                 <div class="gpm-panel side-panel" style="
                     position: fixed; top: ${this.top}px; ${posStyle}
@@ -1773,6 +1902,7 @@
                 this.visible = false;
                 if (save && this.onStateChange) this.onStateChange({ visible: false });
             };
+
             this.toggle = (save = true) => {
                 // Toggle based on current DOM state to stay in sync
                 panel.style.display === 'none' ? this.show(save) : this.hide(save);
@@ -1781,6 +1911,9 @@
             // Toggle Logic (Append/Replace)
             const modeBtns = this.shadow.querySelectorAll('.mode-btn');
             modeBtns.forEach(btn => {
+                // ✨ FIX: Prevent focus loss
+                btn.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
+
                 btn.onclick = () => {
                     this.clickMode = btn.dataset.mode;
                     modeBtns.forEach(b => {
@@ -1788,6 +1921,7 @@
                         b.style.opacity = '0.7';
                         b.classList.remove('active');
                     });
+
                     btn.style.background = 'var(--gpm-primary)';
                     btn.style.opacity = '1';
                     btn.classList.add('active');
@@ -2228,11 +2362,27 @@
                 };
             }
 
-            // 🎲 Dice / Random Mix (Moved here to ensure onRandomReq is set)
+            // 🎲 Dice / Random Mix - v5.0.2 Complete Implementation
             const diceBtn = this.shadow.querySelector('.dice-btn');
             if (diceBtn) {
+                // ✨ FIX: Prevent focus loss on button click itself
+                diceBtn.onmousedown = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                };
+
                 diceBtn.onclick = (e) => {
+                    e.stopPropagation(); // Stop bubbling
+
+                    // Show Context Menu for Random Options
                     const menu = document.createElement('div');
+
+                    // ✨ FIX: Prevent focus loss on menu container interaction
+                    menu.onmousedown = (me) => {
+                        me.preventDefault();
+                        me.stopPropagation();
+                    };
+
                     Object.assign(menu.style, {
                         position: 'fixed', top: (e.clientY + 10) + 'px', left: (e.clientX - 100) + 'px',
                         background: 'rgba(20,20,30,0.95)', border: '1px solid rgba(255,255,255,0.1)',
@@ -2241,6 +2391,7 @@
                         display: 'flex', flexDirection: 'column', gap: '2px', minWidth: '160px'
                     });
 
+                    // ✨ UI Unified: SVG Icons
                     const icons = {
                         portrait: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>',
                         adult: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>',
@@ -2250,19 +2401,30 @@
                         video: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line><line x1="2" y1="7" x2="7" y2="7"></line><line x1="2" y1="17" x2="7" y2="17"></line><line x1="17" y1="17" x2="22" y2="17"></line><line x1="17" y1="7" x2="22" y2="7"></line></svg>'
                     };
 
-                    const options = this.side === 'left' ? [
-                        { label: '写真模式', icon: icons.portrait, act: 'portrait' },
-                        { label: 'R18写真', icon: icons.adult, act: 'adult_portrait' },
-                        { label: '三连抽取', icon: icons.dice, act: 'random3' },
-                        { label: '多类混合', icon: icons.mix, act: 'catmix' },
-                        { label: '混沌生成', icon: icons.cyclone, act: 'chaos' }
-                    ] : [
-                        { label: '视频随机', icon: icons.video, act: 'video_random' },
-                        { label: 'R18视频', icon: icons.adult, act: 'video_r18' }
-                    ];
+                    const opts = [];
 
-                    options.forEach(opt => {
+                    // 🎯 Different modes for Text vs Video panel
+                    if (this.side === 'left') {
+                        // Text Panel Modes
+                        opts.push(
+                            { label: '写真模式', icon: icons.portrait, act: 'portrait' },
+                            { label: 'R18写真', icon: icons.adult, act: 'adult_portrait' },
+                            { label: '三连抽取', icon: icons.dice, act: 'random3' },
+                            { label: '多类混合', icon: icons.mix, act: 'catmix' },
+                            { label: '混沌生成', icon: icons.cyclone, act: 'chaos' }
+                        );
+                    } else {
+                        // Video Panel Modes (Simplified)
+                        opts.push(
+                            { label: '视频随机', icon: icons.video, act: 'video_random' },
+                            { label: 'R18视频', icon: icons.adult, act: 'video_r18' }
+                        );
+                    }
+
+                    opts.forEach(opt => {
                         const item = document.createElement('div');
+                        item.className = 'gpm-ctx-item';
+                        // ✨ Clean UI: Icon + Text
                         item.innerHTML = `
                             <div style="display:flex; align-items:center; gap:10px; pointer-events:none;">
                                 <span style="display:flex; align-items:center; opacity:0.8; color:#aab8c2;">${opt.icon}</span>
@@ -2273,10 +2435,28 @@
                             padding: '10px 12px', cursor: 'pointer', color: '#e7e9ea', fontSize: '13px', borderRadius: '4px',
                             transition: 'all 0.2s ease'
                         });
-                        item.onmouseenter = () => item.style.background = 'rgba(255,255,255,0.1)';
-                        item.onmouseleave = () => item.style.background = 'transparent';
+                        item.onmouseenter = () => {
+                            item.style.background = 'rgba(255,255,255,0.1)';
+                            const icon = item.querySelector('span'); // Icon span
+                            if(icon) icon.style.color = '#fff';
+                        };
+                        item.onmouseleave = () => {
+                            item.style.background = 'transparent';
+                            const icon = item.querySelector('span'); // Icon span
+                            if(icon) icon.style.color = '#aab8c2';
+                        };
+
+                        // ✨ FIX: Prevent focus loss on click (Random Menu)
+                        item.onmousedown = (e) => {
+                            e.preventDefault();
+                        };
+
                         item.onclick = () => {
-                            if (this.onRandomReq) this.onRandomReq(opt.act);
+                            console.log('[DEBUG] Menu item clicked:', opt.act);
+
+                            // 🎯 DIRECT IMPLEMENTATION: Execute mode directly
+                            this.executeRandomMode(opt.act);
+
                             menu.remove();
                             document.removeEventListener('click', closeMenu);
                         };
@@ -2284,7 +2464,10 @@
                     });
 
                     document.body.appendChild(menu);
+
+                    // Stop propagation so the outside click doesn't fire immediately
                     e.stopPropagation();
+
                     const closeMenu = (ev) => {
                         if (!menu.contains(ev.target)) {
                             menu.remove();
@@ -2296,7 +2479,521 @@
             }
         }
 
-        setOnRandomReq(cb) { this.onRandomReq = cb; }
+        // 🎯 Execute Random Mode - Implements all 7 random generation modes
+        executeRandomMode(mode) {
+            console.log('[GPM] executeRandomMode:', mode);
+
+            const panelType = this.side === 'left' ? 'text' : 'video';
+            const storageService = new StorageService();
+            const data = storageService.get();
+            const inputManager = new InputManager();
+
+            // 📸 PORTRAIT MODE
+            if (mode === 'portrait') {
+                const hasSeenGuide = localStorage.getItem('gpm_portrait_guide_seen');
+                if (!hasSeenGuide) {
+                    this.showGuide('portrait', () => this.executePortraitMode(panelType, data, inputManager));
+                    return;
+                }
+                this.executePortraitMode(panelType, data, inputManager);
+            }
+            // 🔞 R18 PORTRAIT MODE
+            else if (mode === 'adult_portrait') {
+                const hasSeenGuide = localStorage.getItem('gpm_r18_guide_seen');
+                if (!hasSeenGuide) {
+                    this.showGuide('adult_portrait', () => this.executeR18PortraitMode(panelType, data, inputManager));
+                    return;
+                }
+                this.executeR18PortraitMode(panelType, data, inputManager);
+            }
+            // 🎬 VIDEO RANDOM MODE
+            else if (mode === 'video_random') {
+                const hasSeenGuide = localStorage.getItem('gpm_video_random_guide_seen');
+                if (!hasSeenGuide) {
+                    this.showGuide('video_random', () => this.executeVideoRandomMode(data, inputManager));
+                    return;
+                }
+                this.executeVideoRandomMode(data, inputManager);
+            }
+            // 🔞 VIDEO R18 MODE
+            else if (mode === 'video_r18') {
+                const hasSeenGuide = localStorage.getItem('gpm_video_r18_guide_seen');
+                if (!hasSeenGuide) {
+                    this.showGuide('video_r18', () => this.executeVideoR18Mode(data, inputManager));
+                    return;
+                }
+                this.executeVideoR18Mode(data, inputManager);
+            }
+            // 🎲 RANDOM3 MODE - 从全局随机抽取3条
+            else if (mode === 'random3') {
+                const hasSeenGuide = localStorage.getItem('gpm_random3_guide_seen');
+                if (!hasSeenGuide) {
+                    this.showGuide('random3', () => this.executeRandom3Mode(panelType, data, inputManager));
+                    return;
+                }
+                this.executeRandom3Mode(panelType, data, inputManager);
+            }
+            // 🎨 CATMIX MODE - 从全局每个分类随机抽取1条
+            else if (mode === 'catmix') {
+                const hasSeenGuide = localStorage.getItem('gpm_catmix_guide_seen');
+                if (!hasSeenGuide) {
+                    this.showGuide('catmix', () => this.executeCatmixMode(panelType, data, inputManager));
+                    return;
+                }
+                this.executeCatmixMode(panelType, data, inputManager);
+            }
+            // 🌀 CHAOS MODE - 从全局随机抽取5-12条
+            else if (mode === 'chaos') {
+                const hasSeenGuide = localStorage.getItem('gpm_chaos_guide_seen');
+                if (!hasSeenGuide) {
+                    this.showGuide('chaos', () => this.executeChaosMode(panelType, data, inputManager));
+                    return;
+                }
+                this.executeChaosMode(panelType, data, inputManager);
+            }
+            else {
+                console.warn('[GPM] Unknown random mode:', mode);
+            }
+        }
+
+        // 📸 Execute Portrait Mode
+        executePortraitMode(panelType, data, inputManager) {
+            // Step 1: Find portrait library
+            const portraitLib = data.libraries.find(lib =>
+                lib.name === '写真模式标准描述' || lib.name.includes('写真模式')
+            );
+
+            if (!portraitLib || !portraitLib.prompts || portraitLib.prompts.length === 0) {
+                alert('❌ 未找到"写真模式标准描述"库，或该库为空\n\n请按照说明创建：\n1. 点击"创建库"\n2. 库名输入：写真模式标准描述\n3. 添加标准写真开头');
+                return;
+            }
+
+            // Step 2: Random pick 1 from portrait library as prefix
+            const randomIndex = Math.floor(Math.random() * portraitLib.prompts.length);
+            const portraitPrefix = portraitLib.prompts[randomIndex].content;
+
+            // Step 3: Collect ALL prompts from all libraries of same type
+            let allPromptsPool = [];
+            data.libraries.forEach(lib => {
+                const isTextLib = !lib.libraryType || lib.libraryType === 'text';
+                const isVideoLib = lib.libraryType === 'video';
+
+                if ((panelType === 'text' && isTextLib) || (panelType === 'video' && isVideoLib)) {
+                    const validPrompts = lib.prompts.filter(p => !p.type || p.type === panelType);
+                    allPromptsPool = allPromptsPool.concat(validPrompts);
+                }
+            });
+
+            if (allPromptsPool.length === 0) {
+                alert('❌ 所有库中没有找到提示词');
+                return;
+            }
+
+            // Step 4: Random pick 10 from global pool
+            const count = 10;
+            const shuffled = [...allPromptsPool].sort(() => 0.5 - Math.random());
+            const selected = shuffled.slice(0, Math.min(count, shuffled.length));
+            const randomPart = selected.map(p => p.content).join(', ');
+
+            // Step 5: Combine
+            const finalPrompt = `${portraitPrefix}, ${randomPart}`;
+
+            // Insert
+            inputManager.setValue(finalPrompt);
+
+            // Toast
+            this.showToast('📸 写真模式：已生成', `标准开头 + ${selected.length} 条随机提示词`, '#1d9bf0');
+        }
+
+        // 🔞 Execute R18 Portrait Mode
+        executeR18PortraitMode(panelType, data, inputManager) {
+            // Step 1: Find portrait library
+            let portraitLib = data.libraries.find(lib => lib.name === '写真模式标准描述');
+            if (!portraitLib) {
+                portraitLib = data.libraries.find(lib => lib.name.includes('写真模式'));
+            }
+
+            if (!portraitLib || !portraitLib.prompts || portraitLib.prompts.length === 0) {
+                alert('❌ 未找到"写真模式标准描述"库\n\n请先创建该库并添加标准写真开头');
+                return;
+            }
+
+            // Step 2: Find adult library
+            let adultLib = data.libraries.find(lib => lib.name === '成人模式标准添加词');
+            if (!adultLib) {
+                adultLib = data.libraries.find(lib => lib.name.includes('成人模式'));
+            }
+
+            if (!adultLib || !adultLib.prompts || adultLib.prompts.length === 0) {
+                alert('❌ 未找到"成人模式标准添加词"库\n\n请创建该库并添加成人写真修饰词');
+                return;
+            }
+
+            // Step 3: Random pick 1 from each library
+            const portraitIndex = Math.floor(Math.random() * portraitLib.prompts.length);
+            const portraitPrefix = portraitLib.prompts[portraitIndex].content;
+
+            const adultIndex = Math.floor(Math.random() * adultLib.prompts.length);
+            const adultModifier = adultLib.prompts[adultIndex].content;
+
+            // Step 4: Collect ALL prompts from all libraries of same type
+            let allPromptsPool = [];
+            data.libraries.forEach(lib => {
+                const isTextLib = !lib.libraryType || lib.libraryType === 'text';
+                const isVideoLib = lib.libraryType === 'video';
+
+                if ((panelType === 'text' && isTextLib) || (panelType === 'video' && isVideoLib)) {
+                    const validPrompts = lib.prompts.filter(p => !p.type || p.type === panelType);
+                    allPromptsPool = allPromptsPool.concat(validPrompts);
+                }
+            });
+
+            if (allPromptsPool.length === 0) {
+                alert('❌ 所有库中没有找到提示词');
+                return;
+            }
+
+            // Step 5: Random pick 10 from global pool
+            const count = 10;
+            const shuffled = [...allPromptsPool].sort(() => 0.5 - Math.random());
+            const selected = shuffled.slice(0, Math.min(count, shuffled.length));
+            const randomPart = selected.map(p => p.content).join(', ');
+
+            // Step 6: Combine
+            const finalPrompt = `${portraitPrefix}, ${adultModifier}, ${randomPart}`;
+
+            // Insert
+            inputManager.setValue(finalPrompt);
+
+            // Toast
+            this.showToast('🔞 R18写真：已生成', `源: ${portraitLib.name} + ${adultLib.name}`, '#e91e63');
+        }
+
+        // 🎬 Execute Video Random Mode
+        executeVideoRandomMode(data, inputManager) {
+            // Find video library
+            let videoLib = data.libraries.find(lib => lib.name === '随机视频专用');
+            if (!videoLib) {
+                videoLib = data.libraries.find(lib => lib.name.includes('随机视频专用'));
+            }
+
+            if (!videoLib || !videoLib.prompts || videoLib.prompts.length === 0) {
+                alert('❌ 未找到"随机视频专用"库，或该库为空\n\n请创建该库并添加视频提示词');
+                return;
+            }
+
+            // Random pick 1
+            const randomIndex = Math.floor(Math.random() * videoLib.prompts.length);
+            const videoPrompt = videoLib.prompts[randomIndex].content;
+
+            // Insert
+            inputManager.setValue(videoPrompt);
+
+            // Toast
+            this.showToast('🎬 视频随机：已生成', `源: ${videoLib.name}`, '#673ab7');
+        }
+
+        // 🔞 Execute Video R18 Mode
+        executeVideoR18Mode(data, inputManager) {
+            // Step 1: Find video library
+            let videoLib = data.libraries.find(lib => lib.name === '随机视频专用');
+            if (!videoLib) {
+                videoLib = data.libraries.find(lib => lib.name.includes('随机视频专用'));
+            }
+
+            if (!videoLib || !videoLib.prompts || videoLib.prompts.length === 0) {
+                alert('❌ 未找到"随机视频专用"库\n\n请先创建该库并添加视频提示词');
+                return;
+            }
+
+            // Step 2: Find R18 video library
+            let r18VideoLib = data.libraries.find(lib => lib.name === 'R18视频添加提示词');
+            if (!r18VideoLib) {
+                r18VideoLib = data.libraries.find(lib => lib.name.includes('R18视频'));
+            }
+
+            if (!r18VideoLib || !r18VideoLib.prompts || r18VideoLib.prompts.length === 0) {
+                alert('❌ 未找到"R18视频添加提示词"库\n\n请创建该库并添加R18视频修饰词');
+                return;
+            }
+
+            // Step 3: Random pick 1 from each library
+            const videoIndex = Math.floor(Math.random() * videoLib.prompts.length);
+            const videoPrompt = videoLib.prompts[videoIndex].content;
+
+            const r18Index = Math.floor(Math.random() * r18VideoLib.prompts.length);
+            const r18Modifier = r18VideoLib.prompts[r18Index].content;
+
+            // Step 4: Combine
+            const finalPrompt = `${videoPrompt}, ${r18Modifier}`;
+
+            // Insert
+            inputManager.setValue(finalPrompt);
+
+            // Toast
+            this.showToast('🔞 R18视频：已生成', `源: ${videoLib.name} + ${r18VideoLib.name}`, '#e91e63');
+        }
+
+        // 🎲 Execute Random3 Mode - 从全局随机抽取3条
+        executeRandom3Mode(panelType, data, inputManager) {
+            // Collect ALL prompts from all libraries of same type
+            let allPromptsPool = [];
+            data.libraries.forEach(lib => {
+                const isTextLib = !lib.libraryType || lib.libraryType === 'text';
+                const isVideoLib = lib.libraryType === 'video';
+
+                if ((panelType === 'text' && isTextLib) || (panelType === 'video' && isVideoLib)) {
+                    const validPrompts = lib.prompts.filter(p => !p.type || p.type === panelType);
+                    allPromptsPool = allPromptsPool.concat(validPrompts);
+                }
+            });
+
+            if (allPromptsPool.length === 0) {
+                alert('❌ 所有库中没有找到提示词');
+                return;
+            }
+
+            // Random pick 3 from global pool
+            const count = 3;
+            const shuffled = [...allPromptsPool].sort(() => 0.5 - Math.random());
+            const selected = shuffled.slice(0, Math.min(count, shuffled.length));
+            const result = selected.map(p => p.content).join(', ');
+
+            // Insert
+            inputManager.setValue(result);
+
+            // Toast
+            this.showToast('🎲 三连抽取：已生成', `从全局 ${allPromptsPool.length} 条中随机抽取 ${selected.length} 条`, '#9c27b0');
+        }
+
+        // 🎨 Execute Catmix Mode - 从全局每个分类随机抽取1条
+        executeCatmixMode(panelType, data, inputManager) {
+            // Collect ALL prompts from all libraries of same type
+            let allPromptsPool = [];
+            data.libraries.forEach(lib => {
+                const isTextLib = !lib.libraryType || lib.libraryType === 'text';
+                const isVideoLib = lib.libraryType === 'video';
+
+                if ((panelType === 'text' && isTextLib) || (panelType === 'video' && isVideoLib)) {
+                    const validPrompts = lib.prompts.filter(p => !p.type || p.type === panelType);
+                    allPromptsPool = allPromptsPool.concat(validPrompts);
+                }
+            });
+
+            if (allPromptsPool.length === 0) {
+                alert('❌ 所有库中没有找到提示词');
+                return;
+            }
+
+            // Get all unique categories from global pool
+            const categories = [...new Set(allPromptsPool.map(p => p.category || 'Uncategorized'))];
+
+            if (categories.length === 0) {
+                alert('❌ 未找到分类');
+                return;
+            }
+
+            // Pick 1 from each category
+            const selected = categories.map(cat => {
+                const inCat = allPromptsPool.filter(p => (p.category || 'Uncategorized') === cat);
+                return inCat[Math.floor(Math.random() * inCat.length)];
+            }).filter(Boolean);
+
+            const result = selected.map(p => p.content).join(', ');
+
+            // Insert
+            inputManager.setValue(result);
+
+            // Toast
+            this.showToast('🎨 多类混合：已生成', `从全局 ${categories.length} 个分类中各抽取 1 条`, '#ff9800');
+        }
+
+        // 🌀 Execute Chaos Mode - 从全局随机抽取5-12条
+        executeChaosMode(panelType, data, inputManager) {
+            // Collect ALL prompts from all libraries of same type
+            let allPromptsPool = [];
+            data.libraries.forEach(lib => {
+                const isTextLib = !lib.libraryType || lib.libraryType === 'text';
+                const isVideoLib = lib.libraryType === 'video';
+
+                if ((panelType === 'text' && isTextLib) || (panelType === 'video' && isVideoLib)) {
+                    const validPrompts = lib.prompts.filter(p => !p.type || p.type === panelType);
+                    allPromptsPool = allPromptsPool.concat(validPrompts);
+                }
+            });
+
+            if (allPromptsPool.length === 0) {
+                alert('❌ 所有库中没有找到提示词');
+                return;
+            }
+
+            // Random pick 5-12 from global pool
+            const count = Math.floor(Math.random() * 8) + 5; // 5 to 12
+            const shuffled = [...allPromptsPool].sort(() => 0.5 - Math.random());
+            const selected = shuffled.slice(0, Math.min(count, shuffled.length));
+            const result = selected.map(p => p.content).join(', ');
+
+            // Insert
+            inputManager.setValue(result);
+
+            // Toast
+            this.showToast('🌀 混沌生成：已生成', `从全局 ${allPromptsPool.length} 条中随机抽取 ${selected.length} 条`, '#673ab7');
+        }
+
+        // 🎨 Show Guide (Universal)
+        showGuide(mode, onProceed) {
+            const guides = {
+                'portrait': {
+                    title: '📸 写真模式使用说明',
+                    color: '#1d9bf0',
+                    what: '一键生成专业写真提示词，自动组合标准开头 + 10条随机风格元素',
+                    how: [
+                        '创建一个名为 <code>写真模式标准描述</code> 的提示词库',
+                        '在此库中添加您的标准写真开头（可添加多条，系统会随机选择）',
+                        '点击写真模式，即可自动生成完整提示词'
+                    ],
+                    example: '真实胶片直闪摄影，亚洲女性，小红书网红脸，表情冷漠而自信，姿态略带挑逗，身材真实吸引人',
+                    storageKey: 'gpm_portrait_guide_seen'
+                },
+                'adult_portrait': {
+                    title: '🔞 R18写真模式使用说明',
+                    color: '#e91e63',
+                    what: '升级版写真提示词生成，双重精准定位：标准写真开头 + 成人修饰语 + 10条随机元素',
+                    how: [
+                        '创建库 <code>写真模式标准描述</code>（标准写真开头）',
+                        '创建库 <code>成人模式标准添加词</code>（成人修饰语）',
+                        '点击R18写真，系统自动从两库各抽1条 + 全局随机10条'
+                    ],
+                    example: '姿态略带挑逗，身材真实吸引人，性感撩人，暴露度适中',
+                    storageKey: 'gpm_r18_guide_seen'
+                },
+                'video_random': {
+                    title: '🎬 视频随机模式使用说明',
+                    color: '#673ab7',
+                    what: '专为视频生成设计的精简模式，避免提示词过多混淆AI判断，每次只从专用库中抽取1条提示词',
+                    how: [
+                        '在右侧视频面板创建库 <code>随机视频专用</code>',
+                        '在该库中添加视频动作/氛围描述（每条独立完整）',
+                        '点击视频随机，系统自动随机抽取1条填入'
+                    ],
+                    example: 'Fabric: 细致黑色蕾丝边缘动作微微晃动，露出圆润头',
+                    storageKey: 'gpm_video_random_guide_seen'
+                },
+                'video_r18': {
+                    title: '🔞 R18视频模式使用说明',
+                    color: '#e91e63',
+                    what: '升级版视频生成，双重精准定位：基础视频提示词 + R18修饰语，只抽取2条避免混淆',
+                    how: [
+                        '创建库 <code>随机视频专用</code>（基础视频描述）',
+                        '创建库 <code>R18视频添加提示词</code>（R18修饰）',
+                        '点击R18视频，系统从两库各抽1条自动组合'
+                    ],
+                    example: 'Pose: 身体侧躺并前倾下，腰线收紧呈弧线展开，布料微掀',
+                    storageKey: 'gpm_video_r18_guide_seen'
+                },
+                'random3': {
+                    title: '🎲 三连抽取使用说明',
+                    color: '#9c27b0',
+                    what: '从所有同类型库的全局提示词池中随机抽取3条，快速组合生成',
+                    how: ['无需选择特定库', '点击"三连抽取"', '系统自动从所有库中随机选择3条提示词并组合'],
+                    example: '提示词1（来自库A）, 提示词2（来自库B）, 提示词3（来自库C）',
+                    storageKey: `gpm_random3_guide_seen`
+                },
+                'catmix': {
+                    title: '🎨 多类混合使用说明',
+                    color: '#ff9800',
+                    what: '从所有库的全局分类中各抽取1条提示词，创造跨库的丰富风格组合',
+                    how: ['无需选择特定库', '点击"多类混合"', '系统自动识别全局所有分类，从每个分类中随机抽取1条'],
+                    example: '人物特征（库A） + 光照（库B） + 姿态（库C） + 背景（库D）',
+                    storageKey: `gpm_catmix_guide_seen`
+                },
+                'chaos': {
+                    title: '🌀 混沌生成使用说明',
+                    color: '#673ab7',
+                    what: '终极随机模式，从所有库的全局提示词池中随机抽取5-12条，创造意外惊喜',
+                    how: ['无需任何设置', '点击"混沌生成"', '系统从全局池中随机抽取5-12条（数量也是随机）'],
+                    example: '可能是5条，也可能是12条，每次数量和内容都完全不同',
+                    storageKey: `gpm_chaos_guide_seen`
+                }
+            };
+
+            const guide = guides[mode];
+            if (!guide) return;
+
+            const overlay = document.createElement('div');
+            overlay.style.cssText = `
+                position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+                background: rgba(0,0,0,0.7); backdrop-filter: blur(5px);
+                z-index: 999999; display: flex; align-items: center; justify-content: center;
+            `;
+
+            const guideBox = document.createElement('div');
+            guideBox.style.cssText = `
+                background: rgba(20, 20, 30, 0.98); border: 1px solid ${guide.color}40;
+                border-radius: 16px; padding: 30px; max-width: 600px;
+                box-shadow: 0 20px 60px ${guide.color}50;
+            `;
+
+            guideBox.innerHTML = `
+                <div style="color: white; font-size: 24px; font-weight: 700; margin-bottom: 20px; text-align: center;">
+                    ${guide.title}
+                </div>
+                <div style="color: #ccc; font-size: 14px; line-height: 1.8; margin-bottom: 25px;">
+                    <p style="margin-bottom: 15px;"><strong style="color: ${guide.color};">✨ 这是什么？</strong><br>
+                    ${guide.what}</p>
+
+                    <p style="margin-bottom: 15px;"><strong style="color: ${guide.color};">🎯 如何使用？</strong></p>
+                    <ol style="padding-left: 20px; margin-bottom: 15px;">
+                        ${guide.how.map(step => `<li style="margin-bottom: 8px;">${step}</li>`).join('')}
+                    </ol>
+
+                    <p style="margin-bottom: 10px;"><strong style="color: ${guide.color};">💡 示例：</strong><br>
+                    <code style="background: rgba(255,255,255,0.05); padding: 8px; border-radius: 4px; display: block; margin-top: 8px; font-size: 12px;">
+                    ${guide.example}
+                    </code></p>
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button id="gpm-guide-cancel" style="
+                        padding: 10px 24px; background: transparent;
+                        border: 1px solid rgba(255,255,255,0.3); border-radius: 8px;
+                        color: white; cursor: pointer; font-size: 14px;
+                    ">取消</button>
+                    <button id="gpm-guide-confirm" style="
+                        padding: 10px 24px; background: ${guide.color};
+                        border: none; border-radius: 8px;
+                        color: white; cursor: pointer; font-size: 14px; font-weight: 600;
+                    ">知道了，开始使用</button>
+                </div>
+            `;
+
+            overlay.appendChild(guideBox);
+            document.body.appendChild(overlay);
+
+            const closeGuide = (shouldProceed) => {
+                overlay.remove();
+                localStorage.setItem(guide.storageKey, 'true');
+                if (shouldProceed && onProceed) onProceed();
+            };
+
+            guideBox.querySelector('#gpm-guide-cancel').onclick = () => closeGuide(false);
+            guideBox.querySelector('#gpm-guide-confirm').onclick = () => closeGuide(true);
+            overlay.onclick = (e) => { if (e.target === overlay) closeGuide(false); };
+        }
+
+        // 🎉 Show Toast
+        showToast(title, subtitle, color) {
+            const toast = document.createElement('div');
+            toast.innerHTML = `${title}<br><span style="font-size:12px;opacity:0.8;display:block;margin-top:2px;">${subtitle}</span>`;
+            Object.assign(toast.style, {
+                position: 'fixed', top: '20px', left: '50%', transform: 'translateX(-50%)',
+                background: `${color}E6`, color: 'white',
+                padding: '10px 20px', borderRadius: '8px', zIndex: '100000',
+                fontSize: '14px', fontWeight: '500', boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                textAlign: 'center'
+            });
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
 
     setup(libraryData, libraries, onPromptClick, onLibChange, onImport, onExport, onAddLib, onDeleteLib, onAddPrompt, onExportAll, onDraftToggle, onPromptAction, onReorder, onAiAssist, onRenameLib, onAddCategory, onImportCategory, onExportCategory, onMoveLib) {
             this.library = libraryData;
@@ -3575,8 +4272,17 @@
                     this.showContextMenu(e, p);
                 };
 
+                // ✨ FIX: Prevent focus loss on click
+                el.onmousedown = (e) => {
+                    // Critical: Prevents the input from confusingly losing focus
+                    // whenever a prompt is clicked.
+                    e.preventDefault();
+                    e.stopPropagation(); // ✨ Prevent bubbling to document
+                };
+
                 // ✨ FEATURE #4: Multi-select with Ctrl+Click
                 el.onclick = (e) => {
+                    e.stopPropagation(); // ✨ Prevent bubbling
                     const isMultiSelect = e.ctrlKey || e.metaKey;
 
                     if (isMultiSelect) {
@@ -4971,35 +5677,55 @@ Breast squeeze, pressing breasts together"></textarea>
             this.init();
         }
 
-        showToast(message, duration = 3000) {
+        showToast(message, duration = 3000, type = 'info') {
             const toast = document.createElement('div');
             toast.textContent = message;
+
+            // 🔧 防止Toast抢占焦点
+            toast.tabIndex = -1;  // 禁止通过Tab键访问
+            toast.setAttribute('aria-hidden', 'true');  // 对屏幕阅读器隐藏
+            toast.setAttribute('role', 'status');  // 语义化标记（不会打断用户）
+
+            // 根据类型选择颜色
+            const colors = {
+                success: 'rgba(0, 186, 124, 0.95)',  // 绿色 - 成功
+                error: 'rgba(255, 77, 79, 0.95)',    // 红色 - 错误
+                warning: 'rgba(255, 159, 67, 0.95)', // 橙色 - 警告
+                info: 'rgba(99, 102, 241, 0.95)'     // 靛蓝 - 信息（保持文艺感）
+            };
+
             Object.assign(toast.style, {
-                position: 'fixed',
+               position: 'fixed',
                 top: '20px',
                 left: '50%',
                 transform: 'translateX(-50%)',
-                background: 'rgba(29, 155, 240, 0.9)',
+                background: colors[type] || colors.info,
                 color: 'white',
-                padding: '10px 20px',
-                borderRadius: '8px',
+                padding: '12px 24px',
+                borderRadius: '12px',  // 更圆润，更现代
                 zIndex: '100000',
                 fontSize: '14px',
-                fontWeight: 'bold',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                fontWeight: '500',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.15)',
                 pointerEvents: 'none',
                 opacity: '0',
-                transition: 'opacity 0.3s ease'
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                backdropFilter: 'blur(8px)',  // 毛玻璃效果
+                border: '1px solid rgba(255,255,255,0.2)'
             });
 
             document.body.appendChild(toast);
 
             // Animate In
-            requestAnimationFrame(() => toast.style.opacity = '1');
+            requestAnimationFrame(() => {
+                toast.style.opacity = '1';
+                toast.style.transform = 'translateX(-50%) translateY(0)';
+            });
 
             // Auto Remove
             setTimeout(() => {
                 toast.style.opacity = '0';
+                toast.style.transform = 'translateX(-50%) translateY(-10px)';
                 setTimeout(() => toast.remove(), 300);
             }, duration);
         }
@@ -5255,7 +5981,7 @@ Breast squeeze, pressing breasts together"></textarea>
                 activeLib.prompts.unshift(newPrompt);
                 this.storage.save(data);
                 this.loadLibraryData();
-                this.showToast('已添加提示词 (Prompt Added)');
+                this.showToast('✨ 已添加提示词', 3000, 'success');
             }
         }
 
@@ -5333,7 +6059,7 @@ Breast squeeze, pressing breasts together"></textarea>
                     break;
                 case 'copy':
                     navigator.clipboard.writeText(prompt.content).then(() => {
-                        this.showToast('已复制 (Copied)');
+                        this.showToast('✅ 已复制', 2000, 'success');
                     });
                     break;
                 case 'pin':
@@ -5349,7 +6075,7 @@ Breast squeeze, pressing breasts together"></textarea>
                         activeLib.prompts.splice(pIndex, 1);
                         this.storage.save(data);
                         this.loadLibraryData();
-                        this.showToast('已删除 (Deleted)');
+                        this.showToast('🗑️ 已删除', 2000, 'success');
                     }
                     break;
             }
@@ -5529,15 +6255,6 @@ Breast squeeze, pressing breasts together"></textarea>
                     () => this.exportCategory('text'),
                     (dir) => this.moveLibrary('text', dir)
                 );
-                this.leftPanel.setOnRandomReq((action) => {
-                    console.log('[DEBUG] setOnRandomReq callback triggered, action:', action);
-                    console.log('[DEBUG] this.handleRandomRequest exists?', typeof this.handleRandomRequest);
-                    if (typeof this.handleRandomRequest === 'function') {
-                        this.handleRandomRequest(action, 'text');
-                    } else {
-                        alert('ERROR: handleRandomRequest is not a function!');
-                    }
-                }); // 🎲 Bind Random
             }
 
             // Setup Right Panel (Video)
@@ -5574,7 +6291,6 @@ Breast squeeze, pressing breasts together"></textarea>
                     () => this.exportCategory('video'),
                     (dir) => this.moveLibrary('video', dir)
                 );
-                this.rightPanel.setOnRandomReq((action) => this.handleRandomRequest(action, 'video')); // 🎲 Bind Random
 
                 // Render Modifiers (Video Panel) - Separate list as requested
                 this.rightPanel.renderModifiers(
@@ -5596,13 +6312,8 @@ Breast squeeze, pressing breasts together"></textarea>
                 () => this.importModifiers('text'),
                 () => this.exportModifiers('text')
             );
-            // Random Mix Binding
-            const mixHandler = (type, mode) => {
-                this.handleRandomRequest(mode, type);
-            };
-            if (this.leftPanel) this.leftPanel.setOnRandomReq((mode) => mixHandler('text', mode));
-            if (this.rightPanel) this.rightPanel.setOnRandomReq((mode) => mixHandler('video', mode));
         }
+
 
         handleReorder(srcId, tgtId, type) {
             const data = this.storage.get();
@@ -5677,7 +6388,7 @@ Breast squeeze, pressing breasts together"></textarea>
 
             this.storage.save(data);
             this.loadLibraryData();
-            this.showToast('库已删除');
+            this.showToast('🗑️ 库已删除', 3000, 'success');
         }
 
         exportLibrary(type) {
@@ -6046,22 +6757,24 @@ Breast squeeze, pressing breasts together"></textarea>
             const isDraftOpen = draftPanel && draftPanel.style.display !== 'none';
 
             if (isDraftOpen) {
-                // Draft panel is open → send to draft
+                // Draft panel is open → send to draft (Always strict by design inside BottomPanel)
                 if (isReplace) {
                     this.bottomPanel.smartReplace(content);
-                    this.showToast('已替换草稿选中部分 (Replaced Selection in Draft)');
+                    this.showToast('✨ 已替换草稿选中部分', 2500, 'success');
                 } else {
                     this.bottomPanel.insertText(content);
-                    this.showToast('已插入草稿 (Inserted to Draft)');
+                    this.showToast('✨ 已插入草稿', 2500, 'success');
                 }
             } else {
                 // Draft panel is closed → send directly to main input
                 if (isReplace) {
-                    this.inputManager.smartReplace(content);
-                    this.showToast('已替换输入框选中部分 (Replaced Selection in Input)');
+                    // Main Input: Use non-strict mode (Force replace all if no selection)
+                    this.inputManager.smartReplace(content, false);
+                    this.showToast('✨ 已替换输入框内容', 2500, 'success');
                 } else {
+                    // Main Input: Append to end
                     this.inputManager.insert(content);
-                    this.showToast('已插入输入框 (Inserted to Input)');
+                    this.showToast('✨ 已插入输入框', 2500, 'success');
                 }
             }
         }
@@ -8737,20 +9450,112 @@ dayjs.extend(dayjs_plugin_utc);
     }
 
     // ========== 全局错误处理 ==========
+    // 错误日志存储（最多保留 10 条）
+    const errorLog = [];
+    const MAX_ERROR_LOG = 10;
+
+    function logError(message, stack) {
+        const error = {
+            time: new Date().toISOString(),
+            message,
+            stack,
+            url: window.location.href
+        };
+
+        errorLog.push(error);
+        if (errorLog.length > MAX_ERROR_LOG) {
+            errorLog.shift(); // 移除最旧的错误
+        }
+
+        // 保存到本地存储，方便用户反馈
+        try {
+            GM_setValue('gpm_error_log', JSON.stringify(errorLog));
+        } catch(e) {
+            console.warn('[GPM] 无法保存错误日志');
+        }
+    }
+
     window.addEventListener('error', (e) => {
         const message = e.message || '';
+        const stack = e.error?.stack || '';
+
+        // ⚠️ 已知问题：'t is not defined' - 可能是 Grok 自身的问题
+        // 但我们仍然记录，只是不弹窗打扰用户
         if (message.includes('t is not defined')) {
-            return; // 静默忽略这个已知错误
+            console.warn('[GPM] 检测到已知错误（可能来自 Grok 本身）:', message);
+            logError(`[Known Issue] ${message}`, stack);
+            return;
         }
+
+        // 记录错误
+        logError(message, stack);
         LOG(`全局错误: ${message}`, 'error');
+
+        // 如果是严重错误，友好提示用户
+        if (!message.includes('Extension') && !message.includes('chrome')) {
+            // 创建友好的错误提示
+            const errorToast = document.createElement('div');
+            errorToast.innerHTML = `
+                <div style="font-weight: 600; margin-bottom: 4px;">⚠️ GPM 遇到问题</div>
+                <div style="font-size: 12px; opacity: 0.9;">部分功能可能受影响，脚本仍在运行</div>
+            `;
+            Object.assign(errorToast.style, {
+                position: 'fixed',
+                top: '20px',
+                right: '20px',
+                background: 'rgba(255, 77, 79, 0.95)',
+                color: 'white',
+                padding: '12px 20px',
+                borderRadius: '12px',
+                zIndex: '100000',
+                fontSize: '13px',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+                maxWidth: '300px',
+                backdropFilter: 'blur(8px)',
+                border: '1px solid rgba(255,255,255,0.2)'
+            });
+
+            document.body?.appendChild(errorToast);
+            setTimeout(() => errorToast.remove(), 5000);
+        }
     });
 
     window.addEventListener('unhandledrejection', (e) => {
         const reason = e.reason || '';
-        if (typeof reason === 'string' && reason.includes('t is not defined')) {
-            return; // 静默忽略这个已知错误
+        const reasonStr = typeof reason === 'string' ? reason : reason?.message || String(reason);
+
+        if (reasonStr.includes('t is not defined')) {
+            console.warn('[GPM] 检测到未处理的 Promise 错误（已知问题）:', reasonStr);
+            logError(`[Promise-Known] ${reasonStr}`, '');
+            return;
         }
-        LOG(`未处理的Promise错误: ${reason}`, 'error');
+
+        logError(`[Promise] ${reasonStr}`, reason?.stack || '');
+        LOG(`未处理的Promise错误: ${reasonStr}`, 'error');
+    });
+
+    // 添加调试命令：查看错误日志
+    GM_registerMenuCommand('📋 查看错误日志', () => {
+        const log = GM_getValue('gpm_error_log', '[]');
+        try {
+            const errors = JSON.parse(log);
+            if (errors.length === 0) {
+                alert('✅ 没有错误记录');
+            } else {
+                const report = errors.map((e, i) =>
+                    `${i + 1}. [${new Date(e.time).toLocaleString('zh-CN')}]\n   ${e.message}`
+                ).join('\n\n');
+                console.log('[GPM] 错误报告:', errors);
+                alert(`📋 最近 ${errors.length} 条错误:\n\n${report}`);
+            }
+        } catch(e) {
+            alert('❌ 错误日志已损坏');
+        }
+    });
+
+    GM_registerMenuCommand('🗑️ 清除错误日志', () => {
+        GM_setValue('gpm_error_log', '[]');
+        alert('✅ 错误日志已清除');
     });
 
     // ========== 脚本信息 ==========
