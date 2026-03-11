@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         【海伯利安】Grok Prompt Manager v6.1.2 (Hyperion)
-// @name:zh-CN   Grok Prompt Manager v6.1.2 (Hyperion) | 植人大树出品
+// @name         【海伯利安】Grok Prompt Manager v6.1.4 (Hyperion)
+// @name:zh-CN   Grok Prompt Manager v6.1.4 (Hyperion) | 植人大树出品
 // @namespace    http://tampermonkey.net/
-// @version      6.1.2
+// @version      6.1.4
 // @description  GPM v6.1.0 代号：Hyperion | 工业级架构重构版 | 一站式 AGI 生产力套件
 // @author       植人大树
 // @match        https://grok.com/*
@@ -31,6 +31,18 @@
 
 /**
  * 📜 Changelog
+ *
+ * v6.1.4 (2026-03-08):
+ * - **🔧 修复**: 点击提示词后无法置入 Grok 输入框的问题
+ *   - 根因 ①：`getInput()` 第二级回退找到 `lastActiveInput` 后直接 return，没有先调用 `.focus()`
+ *   - 修复 ①：在 return 之前增加 `this.lastActiveInput.focus()` 调用
+ *   - 根因 ②：`insert()` 中换行符写成了 `'\\n'`（字面两字符）
+ *   - 修复 ②：将两处 `'\\n'` 统一修正为 `'\n'`
+ *
+ * v6.1.3 (2026-03-08):
+ * - **🔇 静默修复**: 拦截 Grok 网页改版后触发的 ResizeObserver 无害警告弹窗
+ *   - 问题：Grok 页面更新导致 `ResizeObserver loop completed with undelivered notifications` 反复弹出
+ *   - 修复：在脚本入口注入 `error` 事件拦截器，静默处理该类错误，不影响任何功能
  *
  * v6.1.2 (2026-02-07):
  * - **🔧 修复**: 三连抽取、多类混合、混沌生成三种模式现已正确实现全局随机
@@ -279,6 +291,14 @@
 
 (function () {
     'use strict';
+
+    // 🔇 静默 ResizeObserver 无害警告（Grok 网页更新触发，不影响功能）
+    window.addEventListener('error', e => {
+        if (e.message?.includes('ResizeObserver loop')) {
+            e.stopImmediatePropagation();
+            e.preventDefault();
+        }
+    }, true);
 
     // ✨ SELF-EXCLUSION: Do not run UI in the Assist Popup
     if (window.name === 'GrokAssist') {
@@ -1230,8 +1250,9 @@
             }
 
             // 2. Try last active input (Fallback)
-                if (this.lastActiveInput && document.contains(this.lastActiveInput)) {
+            if (this.lastActiveInput && document.contains(this.lastActiveInput)) {
                 console.log('[GPM] Restoring focus to last active input');
+                this.lastActiveInput.focus(); // 🔧 Fix: 必须先 focus，否则 React 控制的输入框会忽略插入
                 return this.lastActiveInput;
             }
 
@@ -1315,10 +1336,10 @@
 
                 if (nativeTextAreaValueSetter) {
                     const currentVal = el.value;
-                    const newVal = currentVal ? currentVal + '\\n' + text : text;
+                    const newVal = currentVal ? currentVal + '\n' + text : text; // 🔧 Fix: '\\n' → '\n' 真正的换行符
                     nativeTextAreaValueSetter.call(el, newVal);
                 } else {
-                    el.value = (el.value || '') + '\\n' + text;
+                    el.value = (el.value || '') + '\n' + text; // 🔧 Fix: 同上
                 }
 
                 el.dispatchEvent(new Event('input', { bubbles: true }));
